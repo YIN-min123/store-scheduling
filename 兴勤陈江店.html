@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>兴勤超市 陈江店 排班工具</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #333; padding: 12px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { text-align: center; font-size: 20px; margin-bottom: 14px; color: #1a1a1a; }
+    .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .card-title { font-size: 14px; font-weight: 600; color: #666; margin-bottom: 10px; }
+    .day-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .day-tab { padding: 12px 8px; border-radius: 8px; border: 1.5px solid #d9d9d9; background: #fff; cursor: pointer; font-size: 14px; transition: all 0.2s; user-select: none; flex: 1; text-align: center; min-width: 0; }
+    .day-tab:hover { border-color: #4472C4; color: #4472C4; }
+    .day-tab.active { background: #4472C4; color: #fff; border-color: #4472C4; }
+    .day-tab.weekend.active { background: #ff7a45; border-color: #ff7a45; }
+    .day-tab.weekday { flex: 1 1 18%; }
+    .day-tab.weekend-tab { flex: 1 1 48%; }
+    .input-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: nowrap; margin-bottom: 8px; }
+    .input-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+    .input-group label { font-size: 12px; color: #888; }
+    .input-group input { width: 100%; padding: 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 16px; text-align: center; outline: none; transition: border 0.2s; }
+    .input-group input:focus { border-color: #4472C4; }
+    .type-label { font-size: 13px; font-weight: 600; padding: 8px 0 0; }
+    .chart-area { position: relative; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    svg { display: block; }
+    .bar { cursor: pointer; transition: opacity 0.15s, filter 0.15s; }
+    .bar:hover { opacity: 0.85; filter: brightness(1.1); }
+    .bar:active { opacity: 0.7; }
+    #tooltip { position: absolute; display: none; background: rgba(0,0,0,0.82); color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.6; pointer-events: none; z-index: 10; white-space: nowrap; }
+    .summary { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+    .summary-item { font-size: 13px; color: #666; }
+    .summary-item strong { color: #333; font-size: 15px; }
+    .legend { display: flex; gap: 12px; margin-top: 10px; font-size: 12px; color: #888; flex-wrap: wrap; }
+    .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+    .btn-push { display: block; width: 100%; padding: 14px 20px; border: none; border-radius: 8px; background: #4472C4; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+    .btn-push:hover { opacity: 0.9; }
+    .btn-push:disabled { opacity: 0.5; cursor: not-allowed; }
+    .push-status { text-align: center; margin-top: 8px; font-size: 13px; color: #888; }
+    .detail-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+    .detail-table th { background: #fafafa; padding: 8px 4px; text-align: center; border-bottom: 1.5px solid #e0e0e0; color: #666; font-weight: 600; }
+    .detail-table td { padding: 6px 4px; text-align: center; border-bottom: 1px solid #f0f0f0; }
+    .detail-table tr:hover td { background: #f5f9ff; }
+    @media (max-width: 600px) {
+      body { padding: 8px; }
+      h1 { font-size: 18px; }
+      .card { padding: 12px; }
+      .day-tab { padding: 10px 4px; font-size: 13px; }
+      .day-tab.weekday { flex: 1 1 18%; }
+      .day-tab.weekend-tab { flex: 1 1 48%; }
+      .input-row { flex-wrap: nowrap; gap: 8px; }
+      .input-group input { padding: 10px 8px; font-size: 15px; }
+      .summary { gap: 10px; }
+      .summary-item { font-size: 12px; }
+      .detail-table { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>兴勤超市 陈江店 排班工具</h1>
+    <div class="card">
+      <div class="card-title">选择日期与参数</div>
+      <div class="day-tabs" id="dayTabs"></div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>预估日总量（单）</label>
+          <input type="number" id="dailyVolume" value="642" min="1" max="2000" onchange="recalculate()">
+        </div>
+        <div class="input-group">
+          <label>目标时效（单/人时）</label>
+          <input type="number" id="targetEff" value="4.5" min="0.5" max="10" step="0.1" onchange="recalculate()">
+        </div>
+      </div>
+      <div class="type-label" id="typeLabel" style="color:#4472C4;">工作日模式</div>
+    </div>
+    <div class="card">
+      <div class="card-title">各时段需求人数</div>
+      <div class="chart-area" id="chartArea">
+        <svg id="barChart" viewBox="0 0 900 340" width="100%" height="340"></svg>
+        <div id="tooltip"></div>
+      </div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:linear-gradient(90deg,#52c41a,#faad14,#ff4d4f);"></span>需求人数色阶（绿→黄→红）</span>
+      </div>
+      <div class="summary" id="summary"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">时段明细表</div>
+      <table class="detail-table" id="detailTable">
+        <thead><tr><th>时段</th><th>占比</th><th>预估单量</th><th>需求人数</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <button class="btn-push" id="pushBtn" onclick="pushToDingTalk()">推送需求分析到钉钉群</button>
+      <div class="push-status" id="pushStatus"></div>
+    </div>
+  </div>
+  <script>
+    const WEEKDAY_RATIOS = {
+      "7.0": 0.0123, "7.5": 0.0110, "8.0": 0.0384, "8.5": 0.0491,
+      "9.0": 0.0522, "9.5": 0.0518, "10.0": 0.0561, "10.5": 0.0541,
+      "11.0": 0.0489, "11.5": 0.0347, "12.0": 0.0279, "12.5": 0.0246,
+      "13.0": 0.0194, "13.5": 0.0207, "14.0": 0.0211, "14.5": 0.0242,
+      "15.0": 0.0297, "15.5": 0.0344, "16.0": 0.0464, "16.5": 0.0515,
+      "17.0": 0.0518, "17.5": 0.0450, "18.0": 0.0412, "18.5": 0.0347,
+      "19.0": 0.0318, "19.5": 0.0287, "20.0": 0.0257, "20.5": 0.0230,
+      "21.0": 0.0088, "21.5": 0.0010
+    };
+    const WEEKEND_RATIOS = {
+      "7.0": 0.0139, "7.5": 0.0115, "8.0": 0.0447, "8.5": 0.0514,
+      "9.0": 0.0610, "9.5": 0.0624, "10.0": 0.0723, "10.5": 0.0634,
+      "11.0": 0.0457, "11.5": 0.0388, "12.0": 0.0288, "12.5": 0.0280,
+      "13.0": 0.0235, "13.5": 0.0181, "14.0": 0.0211, "14.5": 0.0250,
+      "15.0": 0.0282, "15.5": 0.0372, "16.0": 0.0405, "16.5": 0.0462,
+      "17.0": 0.0418, "17.5": 0.0379, "18.0": 0.0321, "18.5": 0.0264,
+      "19.0": 0.0267, "19.5": 0.0244, "20.0": 0.0249, "20.5": 0.0151,
+      "21.0": 0.0049, "21.5": 0.0039
+    };
+    const WD_DAILY_AVG = 642;
+    const WE_DAILY_AVG = 834;
+    const DAY_NAMES = ['周一','周二','周三','周四','周五','周六','周日'];
+    const DAY_TYPES = ['weekday','weekday','weekday','weekday','weekday','weekend','weekend'];
+    let currentDay = 0;
+
+    function init() {
+      const tabs = document.getElementById('dayTabs');
+      DAY_NAMES.forEach((name, i) => {
+        const tab = document.createElement('div');
+        tab.className = 'day-tab ' + (DAY_TYPES[i] === 'weekend' ? 'weekend-tab' : 'weekday');
+        tab.textContent = name;
+        tab.onclick = () => selectDay(i);
+        tabs.appendChild(tab);
+      });
+      selectDay(0);
+    }
+
+    function selectDay(idx) {
+      currentDay = idx;
+      const tabs = document.querySelectorAll('.day-tab');
+      tabs.forEach((t, i) => {
+        t.classList.toggle('active', i === idx);
+      });
+      const isWeekend = DAY_TYPES[idx] === 'weekend';
+      const label = document.getElementById('typeLabel');
+      label.textContent = isWeekend ? '周末模式' : '工作日模式';
+      label.style.color = isWeekend ? '#ff7a45' : '#4472C4';
+      document.getElementById('dailyVolume').value = isWeekend ? WE_DAILY_AVG : WD_DAILY_AVG;
+      recalculate();
+    }
+
+    function getRatios() {
+      return DAY_TYPES[currentDay] === 'weekend' ? WEEKEND_RATIOS : WEEKDAY_RATIOS;
+    }
+
+    function recalculate() {
+      const dailyVol = parseFloat(document.getElementById('dailyVolume').value) || 0;
+      const targetEff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+      const ratios = getRatios();
+      const halfHourEff = targetEff / 2;
+      const data = [];
+      let totalDemand = 0;
+      let peakDemand = 0;
+      let peakSlot = '';
+      for (const [slot, ratio] of Object.entries(ratios)) {
+        const orders = dailyVol * ratio;
+        const demand = orders / halfHourEff;
+        totalDemand += demand;
+        if (demand > peakDemand) {
+          peakDemand = demand;
+          peakSlot = slot;
+        }
+        data.push({ slot, ratio, orders, demand });
+      }
+      drawBarChart(data, peakDemand);
+      drawTable(data, dailyVol);
+      updateSummary(totalDemand, peakSlot, peakDemand, dailyVol, targetEff);
+    }
+
+    function getColor(demand, peak) {
+      if (peak === 0) return '#52c41a';
+      const pct = demand / peak;
+      let r, g, b;
+      if (pct < 0.5) {
+        const t = pct / 0.5;
+        r = Math.round(82 + (250 - 82) * t);
+        g = Math.round(196 + (173 - 196) * t);
+        b = Math.round(26 + (20 - 26) * t);
+      } else {
+        const t = (pct - 0.5) / 0.5;
+        r = Math.round(250 + (255 - 250) * t);
+        g = Math.round(173 + (77 - 173) * t);
+        b = Math.round(20 + (79 - 20) * t);
+      }
+      return `rgb(${r},${g},${b})`;
+    }
+
+    function drawBarChart(data, peakDemand) {
+      const svg = document.getElementById('barChart');
+      svg.innerHTML = '';
+      if (data.length === 0) return;
+      const margin = { top: 20, right: 20, bottom: 50, left: 50 };
+      const width = 900 - margin.left - margin.right;
+      const height = 340 - margin.top - margin.bottom;
+      const barWidth = width / data.length * 0.7;
+      const gap = width / data.length * 0.3;
+      const maxVal = Math.ceil(peakDemand) + 1;
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('transform', `translate(${margin.left},${margin.top})`);
+      for (let i = 0; i <= 5; i++) {
+        const y = height - (height * i / 5);
+        const val = (maxVal * i / 5).toFixed(1);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', 0); line.setAttribute('x2', width);
+        line.setAttribute('y1', y); line.setAttribute('y2', y);
+        line.setAttribute('stroke', '#f0f0f0'); line.setAttribute('stroke-width', 1);
+        g.appendChild(line);
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', -8); text.setAttribute('y', y + 4);
+        text.setAttribute('text-anchor', 'end'); text.setAttribute('font-size', '11');
+        text.setAttribute('fill', '#999'); text.textContent = val;
+        g.appendChild(text);
+      }
+      data.forEach((d, i) => {
+        const x = i * (barWidth + gap) + gap / 2;
+        const barH = (d.demand / maxVal) * height;
+        const y = height - barH;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('class', 'bar');
+        rect.setAttribute('x', x); rect.setAttribute('y', y);
+        rect.setAttribute('width', barWidth); rect.setAttribute('height', barH);
+        rect.setAttribute('fill', getColor(d.demand, peakDemand));
+        rect.setAttribute('rx', 3);
+        rect.onclick = (e) => showTip(e, d);
+        g.appendChild(rect);
+        const slotH = parseFloat(d.slot);
+        const h = Math.floor(slotH);
+        const m = slotH % 1 === 0 ? '00' : '30';
+        const label = `${h}:${m}`;
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x + barWidth / 2); text.setAttribute('y', height + 18);
+        text.setAttribute('text-anchor', 'middle'); text.setAttribute('font-size', '10');
+        text.setAttribute('fill', '#666');
+        text.setAttribute('transform', `rotate(-45, ${x + barWidth / 2}, ${height + 18})`);
+        text.textContent = label;
+        g.appendChild(text);
+      });
+      const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      yLabel.setAttribute('x', -margin.left + 10); yLabel.setAttribute('y', -8);
+      yLabel.setAttribute('font-size', '12'); yLabel.setAttribute('fill', '#666');
+      yLabel.textContent = '需求人数';
+      g.appendChild(yLabel);
+      svg.appendChild(g);
+    }
+
+    function drawTable(data, dailyVol) {
+      const tbody = document.querySelector('#detailTable tbody');
+      tbody.innerHTML = '';
+      data.forEach(d => {
+        const slotH = parseFloat(d.slot);
+        const h = Math.floor(slotH);
+        const m = slotH % 1 === 0 ? '00' : '30';
+        const nextH = slotH % 1 === 0 ? h : h + 1;
+        const nextM = slotH % 1 === 0 ? '30' : '00';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${h}:${m}-${nextH}:${nextM}</td><td>${(d.ratio * 100).toFixed(1)}%</td><td>${d.orders.toFixed(0)}</td><td>${d.demand.toFixed(1)}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateSummary(totalDemand, peakSlot, peakDemand, dailyVol, targetEff) {
+      const slotH = parseFloat(peakSlot);
+      const h = Math.floor(slotH);
+      const m = slotH % 1 === 0 ? '00' : '30';
+      const nextH = slotH % 1 === 0 ? h : h + 1;
+      const nextM = slotH % 1 === 0 ? '30' : '00';
+      document.getElementById('summary').innerHTML = `
+        <div class="summary-item">总需求人时：<strong>${totalDemand.toFixed(1)}</strong></div>
+        <div class="summary-item">峰值时段：<strong>${h}:${m}-${nextH}:${nextM}</strong></div>
+        <div class="summary-item">峰值人数：<strong>${peakDemand.toFixed(1)}</strong> 人</div>
+        <div class="summary-item">预估日总量：<strong>${dailyVol}</strong> 单</div>
+      `;
+    }
+
+    function showTip(e, d) {
+      const tip = document.getElementById('tooltip');
+      const slotH = parseFloat(d.slot);
+      const h = Math.floor(slotH);
+      const m = slotH % 1 === 0 ? '00' : '30';
+      const nextH = slotH % 1 === 0 ? h : h + 1;
+      const nextM = slotH % 1 === 0 ? '30' : '00';
+      tip.innerHTML = `<strong>${h}:${m} - ${nextH}:${nextM}</strong><br>占比：${(d.ratio * 100).toFixed(1)}%<br>预估单量：${d.orders.toFixed(0)} 单<br>需求人数：${d.demand.toFixed(1)} 人`;
+      tip.style.display = 'block';
+      const rect = document.getElementById('chartArea').getBoundingClientRect();
+      tip.style.left = (e.clientX - rect.left + 10) + 'px';
+      tip.style.top = (e.clientY - rect.top - 60) + 'px';
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('bar')) {
+        document.getElementById('tooltip').style.display = 'none';
+      }
+    });
+
+    async function pushToDingTalk() {
+      const btn = document.getElementById('pushBtn');
+      const status = document.getElementById('pushStatus');
+      btn.disabled = true;
+      status.textContent = '正在推送...';
+      status.style.color = '#888';
+      try {
+        const dailyVol = parseFloat(document.getElementById('dailyVolume').value) || 0;
+        const targetEff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+        const ratios = getRatios();
+        const halfHourEff = targetEff / 2;
+        const dayName = DAY_NAMES[currentDay];
+        const modeText = DAY_TYPES[currentDay] === 'weekend' ? '周末' : '工作日';
+        let tableText = '';
+        let totalDemand = 0;
+        let peakDemand = 0;
+        let peakSlot = '';
+        for (const [slot, ratio] of Object.entries(ratios)) {
+          const orders = dailyVol * ratio;
+          const demand = orders / halfHourEff;
+          totalDemand += demand;
+          if (demand > peakDemand) { peakDemand = demand; peakSlot = slot; }
+          const slotH = parseFloat(slot);
+          const h = Math.floor(slotH);
+          const m = slotH % 1 === 0 ? '00' : '30';
+          const nextH = slotH % 1 === 0 ? h : h + 1;
+          const nextM = slotH % 1 === 0 ? '30' : '00';
+          tableText += `${h}:${m}-${nextH}:${nextM} | ${(ratio*100).toFixed(1)}% | ${orders.toFixed(0)}单 | ${demand.toFixed(1)}人\n\n`;
+        }
+        const ps = parseFloat(peakSlot);
+        const ph = Math.floor(ps);
+        const pm = ps % 1 === 0 ? '00' : '30';
+        const pnh = ps % 1 === 0 ? ph : ph + 1;
+        const pnm = ps % 1 === 0 ? '30' : '00';
+        const toolMd = `## 兴勤超市 陈江店 排班工具\n\n` +
+          `填写预估订单量和时效，自动计算各半小时时段人力需求\n\n` +
+          `[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E5%85%B4%E5%8B%A4%E9%99%88%E6%B1%9F%E5%BA%97.html)\n\n` +
+          `> 手机可直接填写，选择日期后自动切换工作日/周末模式\n\n` +
+          `**使用说明：**\n\n` +
+          `1. 选择周一~周日（工作日/周末自动切换数据模型）\n\n` +
+          `2. 填写预估日总量（默认已填入历史日均）\n\n` +
+          `3. 填写目标时效（默认 4.5 单/人时）\n\n` +
+          `4. 查看柱状图和明细表，了解各时段需求人数\n\n` +
+          `5. 可点击"推送需求分析到钉钉群"将结果分享到群`;
+        const token = 'd803a4c93c816453c94347900b1e834899ef48425f4ed7a7734920c79aa6cde6';
+        const secret = 'SECc9593c3fa6d00267f2fbc297a409a56f2be2da03c51f62fffdea30413b51402d';
+        const ts = String(Date.now());
+        const stringToSign = ts + '\n' + secret;
+        const enc = new TextEncoder();
+        const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+        const sig = await crypto.subtle.sign('HMAC', key, enc.encode(stringToSign));
+        const sign = btoa(String.fromCharCode(...new Uint8Array(sig)));
+        const url = `https://oapi.dingtalk.com/robot/send?access_token=${token}&timestamp=${ts}&sign=${encodeURIComponent(sign)}`;
+        const msg = {
+          msgtype: 'markdown',
+          markdown: {
+            title: '兴勤超市-陈江店-排班工具',
+            text: toolMd
+          }
+        };
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(msg)
+        });
+        const result = await resp.json();
+        if (result.errcode === 0) {
+          status.textContent = '推送成功！';
+          status.style.color = '#52c41a';
+        } else {
+          status.textContent = '推送失败：' + result.errmsg;
+          status.style.color = '#ff4d4f';
+        }
+      } catch (err) {
+        status.textContent = '推送失败：' + err.message;
+        status.style.color = '#ff4d4f';
+      }
+      btn.disabled = false;
+    }
+
+    init();
+  </script>
+</body>
+</html>
