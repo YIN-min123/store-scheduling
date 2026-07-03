@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>门店排班工具</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
+    .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; text-decoration: none; color: inherit; display: block; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+    .card:active { transform: translateY(0); }
+    .card-title { font-size: 18px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+    .card-desc { font-size: 14px; color: #888; }
+    .brand-tag { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 20px; margin-bottom: 8px; }
+    .brand-cs { background: #e6f7e6; color: #52c41a; }
+    .brand-lj { background: #e6f0ff; color: #4472C4; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>门店排班工具</h1>
+    <a class="card" href="%E6%88%90%E5%B1%B1%E5%86%9C%E5%9C%BA%E9%BE%99%E6%B9%96%E5%A4%A9%E8%A1%97%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html">
+      <span class="brand-tag brand-cs">成山农场</span>
+      <div class="card-title">龙湖天街店</div>
+      <div class="card-desc">工作日日均 224 单 / 周末日均 338 单</div>
+    </a>
+    <a class="card" href="%E8%81%94%E5%AE%B6%E8%B6%85%E5%B8%82%E5%8F%8C%E5%87%A4%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html">
+      <span class="brand-tag brand-lj">联家超市</span>
+      <div class="card-title">双凤店</div>
+      <div class="card-desc">点击选择日期，填写预估单量查看排班</div>
+    </a>
+    <a class="card" href="%E8%81%94%E5%AE%B6%E8%B6%85%E5%B8%82%E5%B7%A6%E5%B2%B8%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html">
+      <span class="brand-tag brand-lj">联家超市</span>
+      <div class="card-title">左岸店</div>
+      <div class="card-desc">点击选择日期，填写预估单量查看排班</div>
+    </a>
+    <a class="card" href="%E6%88%90%E5%B1%B1%E5%86%9C%E5%9C%BA%E6%9B%B2%E6%B1%9F%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html">
+      <span class="brand-tag brand-cs">成山农场</span>
+      <div class="card-title">曲江店</div>
+      <div class="card-desc">点击选择日期，填写预估单量查看排班</div>
+    </a>
+  </div>
+</body>
+</html>
