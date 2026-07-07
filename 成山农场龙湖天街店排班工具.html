@@ -102,12 +102,14 @@
         <thead><tr><th>时段</th><th>占比</th><th>预估单量</th><th>需求人数</th></tr></thead>
         <tbody></tbody>
       </table>
+      <button class="btn-export" onclick="exportExcel()" style="margin-top:12px;display:block;width:100%;padding:12px 20px;border:none;border-radius:8px;background:#52c41a;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">导出Excel表格</button>
     </div>
     <div class="card">
       <button class="btn-push" id="pushBtn" onclick="pushToDingTalk()">推送需求分析到钉钉群</button>
       <div class="push-status" id="pushStatus"></div>
     </div>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     const WEEKDAY_RATIOS = {"7.5":0.036574,"8.0":0.012489,"8.5":0.033006,"9.0":0.043711,"9.5":0.033898,"10.0":0.044603,"10.5":0.050847,"11.0":0.042819,"11.5":0.053524,"12.0":0.039251,"12.5":0.026762,"13.0":0.03479,"13.5":0.044603,"14.0":0.024086,"14.5":0.028546,"15.0":0.029438,"15.5":0.026762,"16.0":0.02587,"16.5":0.059768,"17.0":0.049955,"17.5":0.062444,"18.0":0.046387,"18.5":0.055308,"19.0":0.054416,"19.5":0.035682,"20.0":0.00446};
     const WEEKEND_RATIOS = {"7.5":0.041359,"8.0":0.019202,"8.5":0.023634,"9.0":0.035451,"9.5":0.042836,"10.0":0.070901,"10.5":0.051699,"11.0":0.051699,"11.5":0.047267,"12.0":0.033973,"12.5":0.050222,"13.0":0.028065,"13.5":0.04579,"14.0":0.033973,"14.5":0.031019,"15.0":0.028065,"15.5":0.032496,"16.0":0.044313,"16.5":0.05613,"17.0":0.042836,"17.5":0.039882,"18.0":0.038405,"18.5":0.042836,"19.0":0.031019,"19.5":0.036928};
@@ -338,10 +340,10 @@
         `预估日总量：**${dailyVol}单** | 目标时效：**${targetEff}单/人时**\n\n` +
         `| 时段 | 占比 | 预估单量 | 需求人数 |\n|---|---|---|---|\n${tableRows}\n\n` +
         `> 总需求：**${totalPersonHours.toFixed(1)}人时** | 峰值：**${fmtTime(peakSlot.h)}（${peakSlot.demand.toFixed(1)}人）**\n\n` +
-        `[点击打开排班工具](http://30.165.100.218:8080/成山农场龙湖天街店排班工具.html)`;
+        `[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E6%88%90%E5%B1%B1%E5%86%9C%E5%9C%BA%E9%BE%99%E6%B9%96%E5%A4%A9%E8%A1%97%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)`;
 
-      const token = 'd803a4c93c816453c94347900b1e834899ef48425f4ed7a7734920c79aa6cde6';
-      const secret = 'SECc9593c3fa6d00267f2fbc297a409a56f2be2da03c51f62fffdea30413b51402d';
+      const token = '0bac650a77e6b26a5e8ca2512716d7dc98535086e3814c35428ca934d554ed55';
+      const secret = 'SEC90f96c452504b95f8fbe7a08a93853b355174a53dc5268c1795049ac8a363855';
 
       try {
         const timestamp = Date.now().toString();
@@ -381,6 +383,43 @@
 
       btn.disabled = false;
       btn.textContent = '推送需求分析到钉钉群';
+    }
+
+    function exportExcel() {
+      const dailyVol = parseFloat(document.getElementById('dailyVolume').value) || 0;
+      const targetEff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+      const ratios = getRatios();
+      const halfHourCap = targetEff / 2;
+      const isWeekend = DAY_TYPES[selectedDay] === 'weekend';
+      const dayType = isWeekend ? '周末' : '工作日';
+      const dateStr = DAY_NAMES[selectedDay] + '（' + dayType + '）';
+
+      const rows = [['成山农场 龙湖天街店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + dailyVol + '单', '目标时效：' + targetEff + '单/人时'], []];
+      rows.push(['时段', '占比', '预估单量', '需求人数']);
+
+      const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
+      let totalVol = 0, totalDemand = 0;
+      slots.forEach(h => {
+        const key = h % 1 === 0 ? h.toFixed(1) : h.toString();
+        const ratio = ratios[key] || 0;
+        const vol = dailyVol * ratio;
+        const demand = vol / halfHourCap;
+        totalVol += vol;
+        totalDemand += demand;
+        rows.push([fmtTime(h), (ratio * 100).toFixed(1) + '%', Math.round(vol), parseFloat(demand.toFixed(1))]);
+      });
+      rows.push([]);
+      rows.push(['合计', '100%', Math.round(totalVol), parseFloat(totalDemand.toFixed(1))]);
+      rows.push([]);
+      rows.push(['总需求人时', parseFloat((totalDemand / 2).toFixed(1))]);
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(wb, ws, '排班明细');
+
+      const fileName = '成山农场龙湖天街店_排班明细_' + DAY_NAMES[selectedDay] + '.xlsx';
+      XLSX.writeFile(wb, fileName);
     }
 
     init();

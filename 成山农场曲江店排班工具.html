@@ -93,12 +93,14 @@
         <thead><tr><th>时段</th><th>占比</th><th>预估单量</th><th>需求人数</th></tr></thead>
         <tbody></tbody>
       </table>
+      <button class="btn-export" id="exportBtn" onclick="exportExcel()" style="margin-top:12px;display:block;width:100%;padding:12px 20px;border:none;border-radius:8px;background:#52c41a;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">导出Excel表格</button>
     </div>
     <div class="card">
       <button class="btn-push" id="pushBtn" onclick="pushToDingTalk()">推送需求分析到钉钉群</button>
       <div class="push-status" id="pushStatus"></div>
     </div>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     const WEEKDAY_RATIOS = {"8.5":0.077249,"9.0":0.034921,"9.5":0.046561,"10.0":0.047619,"10.5":0.047619,"11.0":0.045503,"11.5":0.043386,"12.0":0.033862,"12.5":0.039153,"13.0":0.02963,"13.5":0.02328,"14.0":0.030688,"14.5":0.032804,"15.0":0.037037,"15.5":0.040212,"16.0":0.048677,"16.5":0.038095,"17.0":0.050794,"17.5":0.059259,"18.0":0.047619,"18.5":0.051852,"19.0":0.053968,"19.5":0.035979,"20.0":0.004233};
     const WEEKEND_RATIOS = {"8.5":0.062771,"9.0":0.049784,"9.5":0.056277,"10.0":0.077922,"10.5":0.0671,"11.0":0.060606,"11.5":0.04329,"12.0":0.028139,"12.5":0.054113,"13.0":0.02381,"13.5":0.021645,"14.0":0.028139,"14.5":0.034632,"15.0":0.017316,"15.5":0.041126,"16.0":0.02381,"16.5":0.034632,"17.0":0.04329,"17.5":0.056277,"18.0":0.045455,"18.5":0.054113,"19.0":0.041126,"19.5":0.032468,"20.0":0.002165};
@@ -107,8 +109,8 @@
     const DAY_NAMES = ['周一','周二','周三','周四','周五','周六','周日'];
     const DAY_TYPES = ['weekday','weekday','weekday','weekday','weekday','weekend','weekend'];
 
-    const WEBHOOK_TOKEN = 'd803a4c93c816453c94347900b1e834899ef48425f4ed7a7734920c79aa6cde6';
-    const WEBHOOK_SECRET = 'SECc9593c3fa6d00267f2fbc297a409a56f2be2da03c51f62fffdea30413b51402d';
+    const WEBHOOK_TOKEN = '0bac650a77e6b26a5e8ca2512716d7dc98535086e3814c35428ca934d554ed55';
+    const WEBHOOK_SECRET = 'SEC90f96c452504b95f8fbe7a08a93853b355174a53dc5268c1795049ac8a363855';
 
     let currentDay = 0;
     let currentRatios = WEEKDAY_RATIOS;
@@ -299,7 +301,7 @@
       const md = `## 成山农场 曲江店 排班需求分析\n\n` +
         `**${DAY_NAMES[currentDay]}（${dayType}）** | 预估日总量: ${vol}单 | 目标时效: ${eff}单/人时\n\n` +
         `| 时段 | 占比 | 预估单量 | 需求人数 |\n|---|---|---|---|\n` + tableRows +
-        `\n> 使用排班工具可交互调整参数: [点击打开排班工具](http://30.165.100.218:8080/成山农场曲江店排班工具.html)\n`;
+        `\n> 使用排班工具可交互调整参数: [点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E6%88%90%E5%B1%B1%E5%86%9C%E5%9C%BA%E6%9B%B2%E6%B1%9F%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)\n`;
 
       try {
         const timestamp = Date.now().toString();
@@ -329,6 +331,45 @@
         status.style.color = '#ff4d4f';
       }
       btn.disabled = false;
+    }
+
+    function exportExcel() {
+      const vol = parseFloat(document.getElementById('dailyVolume').value) || 0;
+      const eff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+      const halfEff = eff / 2;
+      const dayType = DAY_TYPES[currentDay] === 'weekend' ? '周末' : '工作日';
+      const dateStr = DAY_NAMES[currentDay] + '（' + dayType + '）';
+
+      // Build data array
+      const rows = [['成山农场 曲江店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + vol + '单', '目标时效：' + eff + '单/人时'], []];
+      rows.push(['时段', '占比', '预估单量', '需求人数']);
+
+      const keys = Object.keys(currentRatios).map(Number).sort((a, b) => a - b);
+      let totalVol = 0, totalDemand = 0;
+      keys.forEach(k => {
+        const key = k % 1 === 0 ? k.toFixed(1) : k.toString();
+        const ratio = currentRatios[key] || 0;
+        const slotVol = vol * ratio;
+        const demand = slotVol / halfEff;
+        totalVol += slotVol;
+        totalDemand += demand;
+        rows.push([formatSlot(k), (ratio * 100).toFixed(1) + '%', Math.round(slotVol), parseFloat(demand.toFixed(1))]);
+      });
+      rows.push([]);
+      rows.push(['合计', '100%', Math.round(totalVol), parseFloat(totalDemand.toFixed(1))]);
+      rows.push([]);
+      rows.push(['总需求人时', parseFloat((totalDemand / eff).toFixed(1))]);
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+
+      // Column widths
+      ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
+
+      XLSX.utils.book_append_sheet(wb, ws, '排班明细');
+
+      const fileName = '成山农场曲江店_排班明细_' + DAY_NAMES[currentDay] + '.xlsx';
+      XLSX.writeFile(wb, fileName);
     }
 
     init();
