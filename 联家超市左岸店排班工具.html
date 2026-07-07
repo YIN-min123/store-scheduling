@@ -102,12 +102,14 @@
         <thead><tr><th>时段</th><th>占比</th><th>预估单量</th><th>需求人数</th></tr></thead>
         <tbody></tbody>
       </table>
+      <button class="btn-export" id="exportBtn" onclick="exportExcel()" style="margin-top:12px;display:block;width:100%;padding:12px 20px;border:none;border-radius:8px;background:#52c41a;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">导出Excel表格</button>
     </div>
     <div class="card">
       <button class="btn-push" id="pushBtn" onclick="pushToDingTalk()">推送需求分析到钉钉群</button>
       <div class="push-status" id="pushStatus"></div>
     </div>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     const WEEKDAY_RATIOS = {"6.5": 0.017668, "7.0": 0.010601, "7.5": 0.017668, "8.0": 0.014134, "8.5": 0.038869, "9.0": 0.053004, "9.5": 0.04947, "10.0": 0.045936, "10.5": 0.067138, "11.0": 0.035336, "11.5": 0.04947, "12.0": 0.010601, "12.5": 0.021201, "13.0": 0.028269, "13.5": 0.031802, "14.0": 0.024735, "14.5": 0.017668, "15.0": 0.021201, "15.5": 0.028269, "16.0": 0.031802, "16.5": 0.021201, "17.0": 0.038869, "17.5": 0.035336, "18.0": 0.067138, "18.5": 0.045936, "19.0": 0.042403, "19.5": 0.063604, "20.0": 0.070671};
     const WEEKEND_RATIOS = {"7.5": 0.028777, "8.0": 0.035971, "8.5": 0.057554, "9.0": 0.057554, "9.5": 0.071942, "10.0": 0.064748, "10.5": 0.086331, "11.0": 0.064748, "11.5": 0.028777, "12.0": 0.021583, "12.5": 0.028777, "13.0": 0.021583, "13.5": 0.021583, "14.0": 0.007194, "14.5": 0.007194, "15.0": 0.043165, "15.5": 0.028777, "16.0": 0.035971, "16.5": 0.057554, "17.0": 0.043165, "17.5": 0.028777, "18.0": 0.028777, "18.5": 0.05036, "19.0": 0.028777, "19.5": 0.021583, "20.0": 0.028777};
@@ -339,11 +341,11 @@
         `| 时段 | 占比 | 单量 | 需求 |\n|---|---|---|---|\n` +
         tableRows + `\n` +
         `> 选择日期后自动切换工作日/周末模式，可修改预估值重新计算\n\n` +
-        `[点击打开排班工具](http://30.165.100.218:8080/联家超市左岸店排班工具.html)`;
+        `[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E8%81%94%E5%AE%B6%E8%B6%85%E5%B8%82%E5%B7%A6%E5%B2%B8%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)`;
 
       try {
-        const token = 'd803a4c9041f9a03c72a6e58f5e57e05a0b3aa6cde6';
-        const secret = 'SECc9593c354e40f18b82d15ef735d7b91e51402d';
+        const token = '1c875b2bd3f76c1d9dd5982478ae92ad20a1eae7bce50e1ee35d7a1f1fcf454c';
+        const secret = 'SEC8347a31e9e7e9d37834c6a1570500e2d5aceaa41f00caefee1e42272634a704f';
 
         const timestamp = Date.now().toString();
         const stringToSign = timestamp + '\n' + secret;
@@ -387,6 +389,42 @@
       }
 
       btn.disabled = false;
+    }
+
+    function exportExcel() {
+      const vol = parseInt(document.getElementById('dailyVolume').value) || 0;
+      const eff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+      const halfHourCap = eff / 2;
+      const ratios = getRatios();
+      const dayType = DAY_TYPES[currentDay] === 'weekend' ? '周末' : '工作日';
+      const dateStr = DAY_NAMES[currentDay] + '（' + dayType + '）';
+
+      const rows = [['联家超市 左岸店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + vol + '单', '目标时效：' + eff + '单/人时'], []];
+      rows.push(['时段', '占比', '预估单量', '需求人数']);
+
+      const keys = Object.keys(ratios).sort((a, b) => parseFloat(a) - parseFloat(b));
+      let totalVol = 0, totalDemand = 0;
+      keys.forEach(k => {
+        const h = parseFloat(k);
+        const ratio = ratios[k];
+        const slotVol = vol * ratio;
+        const demand = slotVol / halfHourCap;
+        totalVol += slotVol;
+        totalDemand += demand;
+        rows.push([formatTime(h), (ratio * 100).toFixed(1) + '%', Math.round(slotVol), parseFloat(demand.toFixed(1))]);
+      });
+      rows.push([]);
+      rows.push(['合计', '100%', Math.round(totalVol), parseFloat(totalDemand.toFixed(1))]);
+      rows.push([]);
+      rows.push(['总需求人时', parseFloat((totalDemand / 2).toFixed(1))]);
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(wb, ws, '排班明细');
+
+      const fileName = '联家超市左岸店_排班明细_' + DAY_NAMES[currentDay] + '.xlsx';
+      XLSX.writeFile(wb, fileName);
     }
 
     init();

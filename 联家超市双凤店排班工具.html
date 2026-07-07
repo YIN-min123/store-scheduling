@@ -102,12 +102,14 @@
         <thead><tr><th>时段</th><th>占比</th><th>预估单量</th><th>需求人数</th></tr></thead>
         <tbody></tbody>
       </table>
+      <button class="btn-export" id="exportBtn" onclick="exportExcel()" style="margin-top:12px;display:block;width:100%;padding:12px 20px;border:none;border-radius:8px;background:#52c41a;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">导出Excel表格</button>
     </div>
     <div class="card">
       <button class="btn-push" id="pushBtn" onclick="pushToDingTalk()">推送需求分析到钉钉群</button>
       <div class="push-status" id="pushStatus"></div>
     </div>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     const WEEKDAY_RATIOS = {"7.5":0.0225,"8.0":0.0326,"8.5":0.0535,"9.0":0.0713,"9.5":0.0512,"10.0":0.0612,"10.5":0.0535,"11.0":0.0395,"11.5":0.0364,"12.0":0.0318,"12.5":0.0333,"13.0":0.0209,"13.5":0.0202,"14.0":0.0233,"14.5":0.0225,"15.0":0.0341,"15.5":0.0302,"16.0":0.0287,"16.5":0.0271,"17.0":0.0372,"17.5":0.055,"18.0":0.0434,"18.5":0.0372,"19.0":0.0419,"19.5":0.0496,"20.0":0.0419};
     const WEEKEND_RATIOS = {"7.5":0.0308,"8.0":0.0444,"8.5":0.0393,"9.0":0.0496,"9.5":0.065,"10.0":0.0632,"10.5":0.0838,"11.0":0.0479,"11.5":0.0376,"12.0":0.0256,"12.5":0.0256,"13.0":0.0274,"13.5":0.0308,"14.0":0.0188,"14.5":0.0274,"15.0":0.041,"15.5":0.0222,"16.0":0.0444,"16.5":0.0376,"17.0":0.0325,"17.5":0.0496,"18.0":0.0256,"18.5":0.0222,"19.0":0.041,"19.5":0.0376,"20.0":0.0291};
@@ -295,8 +297,8 @@
       status.textContent = '正在推送...';
       status.style.color = '#888';
 
-      const token = 'd803a4c93c816453c94347900b1e834899ef48425f4ed7a7734920c79aa6cde6';
-      const secret = 'SECc9593c3fa6d00267f2fbc297a409a56f2be2da03c51f62fffdea30413b51402d';
+      const token = '1c875b2bd3f76c1d9dd5982478ae92ad20a1eae7bce50e1ee35d7a1f1fcf454c';
+      const secret = 'SEC8347a31e9e7e9d37834c6a1570500e2d5aceaa41f00caefee1e42272634a704f';
 
       try {
         const timestamp = Date.now().toString();
@@ -335,7 +337,7 @@
           `**预估日总量**：${volume}单 | **目标时效**：${eff}单/人时\n\n` +
           `**总需求人时**：${(totalPH / 2).toFixed(1)}\n\n` +
           `| 时段 | 占比 | 预估单量 | 需求人数 |\n|---|---|---|---|\n` + tableRows +
-          `\n[点击打开排班工具](http://30.165.100.218:8080/联家超市双凤店排班工具.html)\n\n` +
+          `\n[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E8%81%94%E5%AE%B6%E8%B6%85%E5%B8%82%E5%8F%8C%E5%87%A4%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)\n\n` +
           `> 手机可直接填写预估订单和时效，实时查看各时段人力需求`;
 
         const resp = await fetch(url, {
@@ -362,6 +364,42 @@
         status.style.color = '#ff4d4f';
       }
       btn.disabled = false;
+    }
+
+    function exportExcel() {
+      const vol = parseInt(document.getElementById('dailyVolume').value) || 0;
+      const eff = parseFloat(document.getElementById('targetEff').value) || 3.5;
+      const halfHourCap = eff / 2;
+      const ratios = getRatios();
+      const dayType = DAY_TYPES[currentDay] === 'weekend' ? '周末' : '工作日';
+      const dateStr = DAY_NAMES[currentDay] + '（' + dayType + '）';
+
+      const rows = [['联家超市 双凤店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + vol + '单', '目标时效：' + eff + '单/人时'], []];
+      rows.push(['时段', '占比', '预估单量', '需求人数']);
+
+      const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
+      let totalVol = 0, totalDemand = 0;
+      slots.forEach(s => {
+        const key = s % 1 === 0 ? s.toFixed(1) : s.toString();
+        const ratio = ratios[key] || 0;
+        const slotVol = vol * ratio;
+        const demand = slotVol / halfHourCap;
+        totalVol += slotVol;
+        totalDemand += demand;
+        rows.push([formatTime(s), (ratio * 100).toFixed(1) + '%', Math.round(slotVol), parseFloat(demand.toFixed(1))]);
+      });
+      rows.push([]);
+      rows.push(['合计', '100%', Math.round(totalVol), parseFloat(totalDemand.toFixed(1))]);
+      rows.push([]);
+      rows.push(['总需求人时', parseFloat((totalDemand / 2).toFixed(1))]);
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(wb, ws, '排班明细');
+
+      const fileName = '联家超市双凤店_排班明细_' + DAY_NAMES[currentDay] + '.xlsx';
+      XLSX.writeFile(wb, fileName);
     }
 
     init();
