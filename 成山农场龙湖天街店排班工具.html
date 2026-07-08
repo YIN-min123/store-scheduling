@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>成山农场 龙湖天街店 排班工具</title>
+  <title>成山农场龙湖天街店排班工具</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #333; padding: 12px; }
@@ -11,7 +11,6 @@
     h1 { text-align: center; font-size: 20px; margin-bottom: 14px; color: #1a1a1a; }
     .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     .card-title { font-size: 14px; font-weight: 600; color: #666; margin-bottom: 10px; }
-
     .day-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
     .day-tab { padding: 12px 8px; border-radius: 8px; border: 1.5px solid #d9d9d9; background: #fff; cursor: pointer; font-size: 14px; transition: all 0.2s; user-select: none; flex: 1; text-align: center; min-width: 0; }
     .day-tab:hover { border-color: #4472C4; color: #4472C4; }
@@ -19,39 +18,31 @@
     .day-tab.weekend.active { background: #ff7a45; border-color: #ff7a45; }
     .day-tab.weekday { flex: 1 1 18%; }
     .day-tab.weekend-tab { flex: 1 1 48%; }
-
     .input-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: nowrap; margin-bottom: 8px; }
     .input-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
     .input-group label { font-size: 12px; color: #888; }
     .input-group input { width: 100%; padding: 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 16px; text-align: center; outline: none; transition: border 0.2s; }
     .input-group input:focus { border-color: #4472C4; }
     .type-label { font-size: 13px; font-weight: 600; padding: 8px 0 0; }
-
     .chart-area { position: relative; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     svg { display: block; }
     .bar { cursor: pointer; transition: opacity 0.15s, filter 0.15s; }
     .bar:hover { opacity: 0.85; filter: brightness(1.1); }
     .bar:active { opacity: 0.7; }
-
     #tooltip { position: absolute; display: none; background: rgba(0,0,0,0.82); color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.6; pointer-events: none; z-index: 10; white-space: nowrap; }
-
     .summary { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
     .summary-item { font-size: 13px; color: #666; }
     .summary-item strong { color: #333; font-size: 15px; }
-
     .legend { display: flex; gap: 12px; margin-top: 10px; font-size: 12px; color: #888; flex-wrap: wrap; }
     .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
-
     .btn-push { display: block; width: 100%; padding: 14px 20px; border: none; border-radius: 8px; background: #4472C4; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
     .btn-push:hover { opacity: 0.9; }
     .btn-push:disabled { opacity: 0.5; cursor: not-allowed; }
     .push-status { text-align: center; margin-top: 8px; font-size: 13px; color: #888; }
-
     .detail-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
     .detail-table th { background: #fafafa; padding: 8px 4px; text-align: center; border-bottom: 1.5px solid #e0e0e0; color: #666; font-weight: 600; }
     .detail-table td { padding: 6px 4px; text-align: center; border-bottom: 1px solid #f0f0f0; }
     .detail-table tr:hover td { background: #f5f9ff; }
-
     @media (max-width: 600px) {
       body { padding: 8px; }
       h1 { font-size: 18px; }
@@ -76,7 +67,7 @@
       <div class="input-row">
         <div class="input-group">
           <label>预估日总量（单）</label>
-          <input type="number" id="dailyVolume" value="224" min="1" max="2000" onchange="recalculate()">
+          <input type="number" id="dailyVolume" value="308" min="1" max="5000" onchange="recalculate()">
         </div>
         <div class="input-group">
           <label>目标时效（单/人时）</label>
@@ -102,7 +93,7 @@
         <thead><tr><th>时段</th><th>占比</th><th>预估单量</th><th>需求人数</th></tr></thead>
         <tbody></tbody>
       </table>
-      <button class="btn-export" onclick="exportExcel()" style="margin-top:12px;display:block;width:100%;padding:12px 20px;border:none;border-radius:8px;background:#52c41a;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">导出Excel表格</button>
+      <button class="btn-export" id="exportBtn" onclick="exportExcel()" style="margin-top:12px;display:block;width:100%;padding:12px 20px;border:none;border-radius:8px;background:#52c41a;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">导出Excel表格</button>
     </div>
     <div class="card">
       <button class="btn-push" id="pushBtn" onclick="pushToDingTalk()">推送需求分析到钉钉群</button>
@@ -111,64 +102,68 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
-    const WEEKDAY_RATIOS = {"7.5":0.036574,"8.0":0.012489,"8.5":0.033006,"9.0":0.043711,"9.5":0.033898,"10.0":0.044603,"10.5":0.050847,"11.0":0.042819,"11.5":0.053524,"12.0":0.039251,"12.5":0.026762,"13.0":0.03479,"13.5":0.044603,"14.0":0.024086,"14.5":0.028546,"15.0":0.029438,"15.5":0.026762,"16.0":0.02587,"16.5":0.059768,"17.0":0.049955,"17.5":0.062444,"18.0":0.046387,"18.5":0.055308,"19.0":0.054416,"19.5":0.035682,"20.0":0.00446};
-    const WEEKEND_RATIOS = {"7.5":0.041359,"8.0":0.019202,"8.5":0.023634,"9.0":0.035451,"9.5":0.042836,"10.0":0.070901,"10.5":0.051699,"11.0":0.051699,"11.5":0.047267,"12.0":0.033973,"12.5":0.050222,"13.0":0.028065,"13.5":0.04579,"14.0":0.033973,"14.5":0.031019,"15.0":0.028065,"15.5":0.032496,"16.0":0.044313,"16.5":0.05613,"17.0":0.042836,"17.5":0.039882,"18.0":0.038405,"18.5":0.042836,"19.0":0.031019,"19.5":0.036928};
-    const WD_DAILY_AVG = 224;
-    const WE_DAILY_AVG = 338;
+    const WEEKDAY_RATIOS = {"7.5": 0.026, "8.0": 0.0146, "8.5": 0.026, "9.0": 0.0309, "9.5": 0.0293, "10.0": 0.0537, "10.5": 0.039, "11.0": 0.0455, "11.5": 0.0488, "12.0": 0.0244, "12.5": 0.0358, "13.0": 0.0309, "13.5": 0.0358, "14.0": 0.026, "14.5": 0.0293, "15.0": 0.026, "15.5": 0.039, "16.0": 0.0504, "16.5": 0.0553, "17.0": 0.0585, "17.5": 0.0455, "18.0": 0.039, "18.5": 0.065, "19.0": 0.0732, "19.5": 0.0504, "20.0": 0.0016};
+    const WEEKEND_RATIOS = {"7.5": 0.023, "8.0": 0.0092, "8.5": 0.02, "9.0": 0.0215, "9.5": 0.0645, "10.0": 0.0553, "10.5": 0.0676, "11.0": 0.0445, "11.5": 0.0369, "12.0": 0.0445, "12.5": 0.0323, "13.0": 0.0353, "13.5": 0.0461, "14.0": 0.0353, "14.5": 0.0445, "15.0": 0.0261, "15.5": 0.0538, "16.0": 0.0399, "16.5": 0.0445, "17.0": 0.043, "17.5": 0.0415, "18.0": 0.0476, "18.5": 0.0353, "19.0": 0.0507, "19.5": 0.0369};
+    const WD_DAILY_AVG = 308;
+    const WE_DAILY_AVG = 326;
     const DAY_NAMES = ['周一','周二','周三','周四','周五','周六','周日'];
     const DAY_TYPES = ['weekday','weekday','weekday','weekday','weekday','weekend','weekend'];
+    const GITHUB_URL = "https://yin-min123.github.io/store-scheduling/%E6%88%90%E5%B1%B1%E5%86%9C%E5%9C%BA%E9%BE%99%E6%B9%96%E5%A4%A9%E8%A1%97%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html";
 
-    let selectedDay = 0;
+    let currentDay = 0;
 
     function init() {
-      const tabs = document.getElementById('dayTabs');
+      const tabsEl = document.getElementById('dayTabs');
+      tabsEl.innerHTML = '';
       DAY_NAMES.forEach((name, i) => {
         const tab = document.createElement('div');
-        tab.className = 'day-tab ' + (DAY_TYPES[i] === 'weekend' ? 'weekend' : 'weekday');
-        if (DAY_TYPES[i] === 'weekend') tab.className += ' weekend-tab';
+        tab.className = 'day-tab ' + DAY_TYPES[i] + (i === 0 ? ' active' : '');
+        if (DAY_TYPES[i] === 'weekend') tab.classList.add('weekend-tab');
+        else tab.classList.add('weekday');
         tab.textContent = name;
         tab.onclick = () => selectDay(i);
-        tabs.appendChild(tab);
+        tabsEl.appendChild(tab);
       });
-      selectDay(0);
+      recalculate();
     }
 
     function selectDay(idx) {
-      selectedDay = idx;
+      currentDay = idx;
       const tabs = document.querySelectorAll('.day-tab');
-      tabs.forEach((t, i) => t.classList.toggle('active', i === idx));
+      tabs.forEach((t, i) => {
+        t.classList.toggle('active', i === idx);
+      });
       const isWeekend = DAY_TYPES[idx] === 'weekend';
-      const volInput = document.getElementById('dailyVolume');
-      volInput.value = isWeekend ? WE_DAILY_AVG : WD_DAILY_AVG;
       const label = document.getElementById('typeLabel');
       label.textContent = isWeekend ? '周末模式' : '工作日模式';
       label.style.color = isWeekend ? '#ff7a45' : '#4472C4';
+      document.getElementById('dailyVolume').value = isWeekend ? WE_DAILY_AVG : WD_DAILY_AVG;
       recalculate();
     }
 
     function getRatios() {
-      return DAY_TYPES[selectedDay] === 'weekend' ? WEEKEND_RATIOS : WEEKDAY_RATIOS;
+      return DAY_TYPES[currentDay] === 'weekend' ? WEEKEND_RATIOS : WEEKDAY_RATIOS;
     }
 
-    function fmtTime(h) {
+    function formatTime(h) {
       const hour = Math.floor(h);
-      const min = (h % 1) >= 0.5 ? '30' : '00';
+      const min = h % 1 === 0 ? '00' : '30';
       return hour + ':' + min;
     }
 
     function recalculate() {
-      const dailyVol = parseFloat(document.getElementById('dailyVolume').value) || 0;
-      const targetEff = parseFloat(document.getElementById('targetEff').value) || 4.5;
       const ratios = getRatios();
-      const halfHourCap = targetEff / 2;
+      const volume = parseInt(document.getElementById('dailyVolume').value) || 0;
+      const eff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+      const halfHourCap = eff / 2;
 
       const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
-      const data = slots.map(h => {
-        const key = h % 1 === 0 ? h.toFixed(1) : h.toString();
+      const data = slots.map(s => {
+        const key = s % 1 === 0 ? s.toFixed(1) : s.toString();
         const ratio = ratios[key] || 0;
-        const vol = dailyVol * ratio;
-        const demand = vol / halfHourCap;
-        return { h, ratio, vol, demand, key };
+        const estOrders = volume * ratio;
+        const needed = estOrders / halfHourCap;
+        return { slot: s, ratio, estOrders, needed };
       });
 
       drawBarChart(data);
@@ -176,9 +171,9 @@
       updateSummary(data);
     }
 
-    function getColor(demand, maxDemand) {
-      if (maxDemand === 0) return '#52c41a';
-      const pct = demand / maxDemand;
+    function getColor(val, max) {
+      if (max === 0) return '#52c41a';
+      const pct = val / max;
       if (pct <= 0.5) {
         const t = pct / 0.5;
         const r = Math.round(82 + (250 - 82) * t);
@@ -196,217 +191,112 @@
 
     function drawBarChart(data) {
       const svg = document.getElementById('barChart');
-      svg.innerHTML = '';
-      if (data.length === 0) return;
+      const W = 900, H = 340;
+      const padL = 50, padR = 20, padT = 20, padB = 60;
+      const chartW = W - padL - padR;
+      const chartH = H - padT - padB;
 
-      const margin = { top: 20, right: 20, bottom: 50, left: 50 };
-      const width = 900 - margin.left - margin.right;
-      const height = 340 - margin.top - margin.bottom;
-      const maxDemand = Math.max(...data.map(d => d.demand), 0.1);
+      const maxVal = Math.max(...data.map(d => d.needed), 0.1);
+      const barW = Math.min(chartW / data.length * 0.65, 28);
+      const gap = chartW / data.length;
 
-      const barWidth = width / data.length * 0.7;
-      const gap = width / data.length * 0.3;
+      let html = '';
 
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('transform', `translate(${margin.left},${margin.top})`);
-
-      // Y axis
       const yTicks = 5;
       for (let i = 0; i <= yTicks; i++) {
-        const val = (maxDemand / yTicks) * i;
-        const y = height - (val / maxDemand) * height;
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', 0); line.setAttribute('x2', width);
-        line.setAttribute('y1', y); line.setAttribute('y2', y);
-        line.setAttribute('stroke', '#f0f0f0'); line.setAttribute('stroke-width', 1);
-        g.appendChild(line);
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', -8); text.setAttribute('y', y + 4);
-        text.setAttribute('text-anchor', 'end'); text.setAttribute('font-size', '11');
-        text.setAttribute('fill', '#999');
-        text.textContent = val.toFixed(1);
-        g.appendChild(text);
+        const y = padT + chartH - (chartH * i / yTicks);
+        const val = (maxVal * i / yTicks).toFixed(1);
+        html += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;
+        html += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#999">${val}</text>`;
       }
 
-      // Bars
       data.forEach((d, i) => {
-        const x = i * (barWidth + gap) + gap / 2;
-        const barH = (d.demand / maxDemand) * height;
-        const y = height - barH;
-        const color = getColor(d.demand, maxDemand);
+        const x = padL + gap * i + (gap - barW) / 2;
+        const barH = (d.needed / maxVal) * chartH;
+        const y = padT + chartH - barH;
+        const color = getColor(d.needed, maxVal);
+        html += `<rect class="bar" x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}" data-idx="${i}" onclick="showTip(event, ${i})"/>`;
 
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.setAttribute('x', x); rect.setAttribute('y', y);
-        rect.setAttribute('width', barWidth); rect.setAttribute('height', barH);
-        rect.setAttribute('rx', 3); rect.setAttribute('fill', color);
-        rect.setAttribute('class', 'bar');
-        rect.dataset.idx = i;
-        rect.onclick = (e) => showTip(e, d);
-        g.appendChild(rect);
-
-        // X label
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', x + barWidth / 2); text.setAttribute('y', height + 18);
-        text.setAttribute('text-anchor', 'middle'); text.setAttribute('font-size', '10');
-        text.setAttribute('fill', '#999');
-        text.setAttribute('transform', `rotate(-45, ${x + barWidth / 2}, ${height + 18})`);
-        text.textContent = fmtTime(d.h);
-        g.appendChild(text);
+        const label = formatTime(d.slot);
+        const showLabel = data.length <= 20 || i % 2 === 0;
+        if (showLabel) {
+          html += `<text x="${x + barW / 2}" y="${padT + chartH + 18}" text-anchor="middle" font-size="10" fill="#999" transform="rotate(-35, ${x + barW / 2}, ${padT + chartH + 18})">${label}</text>`;
+        }
       });
 
-      // Y axis label
-      const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      yLabel.setAttribute('x', -margin.left + 10); yLabel.setAttribute('y', -8);
-      yLabel.setAttribute('font-size', '12'); yLabel.setAttribute('fill', '#999');
-      yLabel.textContent = '需求人数';
-      g.appendChild(yLabel);
+      html += `<text x="14" y="${padT + chartH / 2}" text-anchor="middle" font-size="12" fill="#999" transform="rotate(-90, 14, ${padT + chartH / 2})">需求人数</text>`;
 
-      svg.appendChild(g);
-
-      // Click outside to hide tooltip
-      svg.onclick = (e) => {
-        if (!e.target.classList.contains('bar')) hideTip();
-      };
+      svg.innerHTML = html;
+      window._chartData = data;
     }
 
     function drawTable(data) {
       const tbody = document.querySelector('#detailTable tbody');
-      tbody.innerHTML = '';
-      data.forEach(d => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${fmtTime(d.h)}</td><td>${(d.ratio * 100).toFixed(1)}%</td><td>${d.vol.toFixed(0)}</td><td>${d.demand.toFixed(1)}</td>`;
-        tbody.appendChild(tr);
-      });
+      tbody.innerHTML = data.map(d => {
+        return `<tr>
+          <td>${formatTime(d.slot)}</td>
+          <td>${(d.ratio * 100).toFixed(2)}%</td>
+          <td>${d.estOrders.toFixed(1)}</td>
+          <td><strong>${d.needed.toFixed(1)}</strong></td>
+        </tr>`;
+      }).join('');
     }
 
     function updateSummary(data) {
-      const totalPersonHalfHour = data.reduce((s, d) => s + d.demand, 0);
-      const totalPersonHours = totalPersonHalfHour / 2;
-      const peakSlot = data.reduce((max, d) => d.demand > max.demand ? d : max, data[0]);
+      const totalPersonHalfHours = data.reduce((s, d) => s + d.needed, 0);
+      const totalPersonHours = totalPersonHalfHours / 2;
+      const peakSlot = data.reduce((max, d) => d.needed > max.needed ? d : max, data[0]);
+      const peakTime = formatTime(peakSlot.slot);
+
       document.getElementById('summary').innerHTML = `
         <div class="summary-item">总需求人时：<strong>${totalPersonHours.toFixed(1)}</strong></div>
-        <div class="summary-item">峰值时段：<strong>${fmtTime(peakSlot.h)}</strong>（${peakSlot.demand.toFixed(1)}人）</div>
+        <div class="summary-item">峰值时段：<strong>${peakTime}</strong>（${peakSlot.needed.toFixed(1)}人）</div>
+        <div class="summary-item">时段数：<strong>${data.length}</strong></div>
       `;
     }
 
-    function showTip(e, d) {
+    function showTip(event, idx) {
+      event.stopPropagation();
+      const d = window._chartData[idx];
       const tip = document.getElementById('tooltip');
-      tip.innerHTML = `<b>${fmtTime(d.h)}</b><br>占比：${(d.ratio * 100).toFixed(1)}%<br>预估单量：${d.vol.toFixed(0)}单<br>需求人数：${d.demand.toFixed(1)}人`;
+      tip.innerHTML = `<strong>${formatTime(d.slot)}</strong><br>占比：${(d.ratio * 100).toFixed(2)}%<br>预估单量：${d.estOrders.toFixed(1)}单<br>需求人数：${d.needed.toFixed(1)}人`;
       tip.style.display = 'block';
+
       const chartArea = document.getElementById('chartArea');
       const rect = chartArea.getBoundingClientRect();
-      const x = e.clientX - rect.left + chartArea.scrollLeft + 10;
-      const y = e.clientY - rect.top - 60;
-      tip.style.left = Math.min(x, rect.width - 180) + 'px';
-      tip.style.top = Math.max(y, 0) + 'px';
+      const x = event.clientX - rect.left + chartArea.scrollLeft;
+      const y = event.clientY - rect.top + chartArea.scrollTop;
+      tip.style.left = (x + 12) + 'px';
+      tip.style.top = (y - 10) + 'px';
     }
 
-    function hideTip() {
-      document.getElementById('tooltip').style.display = 'none';
-    }
-
-    async function pushToDingTalk() {
-      const btn = document.getElementById('pushBtn');
-      const status = document.getElementById('pushStatus');
-      btn.disabled = true;
-      btn.textContent = '推送中...';
-      status.textContent = '';
-
-      const dailyVol = document.getElementById('dailyVolume').value;
-      const targetEff = document.getElementById('targetEff').value;
-      const ratios = getRatios();
-      const halfHourCap = parseFloat(targetEff) / 2;
-      const isWeekend = DAY_TYPES[selectedDay] === 'weekend';
-
-      const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
-      const data = slots.map(h => {
-        const key = h % 1 === 0 ? h.toFixed(1) : h.toString();
-        const ratio = ratios[key] || 0;
-        const vol = parseFloat(dailyVol) * ratio;
-        const demand = vol / halfHourCap;
-        return { h, ratio, vol, demand };
-      });
-
-      const peakSlot = data.reduce((max, d) => d.demand > max.demand ? d : max, data[0]);
-      const totalPersonHours = data.reduce((s, d) => s + d.demand, 0) / 2;
-
-      // Build analysis markdown
-      let tableRows = data.filter(d => d.demand > 0.1).map(d =>
-        `| ${fmtTime(d.h)} | ${(d.ratio*100).toFixed(1)}% | ${d.vol.toFixed(0)} | ${d.demand.toFixed(1)} |`
-      ).join('\n');
-
-      const analysisMd = `## 成山农场 龙湖天街店 排班分析\n\n` +
-        `**${DAY_NAMES[selectedDay]}（${isWeekend ? '周末' : '工作日'}模式）**\n\n` +
-        `预估日总量：**${dailyVol}单** | 目标时效：**${targetEff}单/人时**\n\n` +
-        `| 时段 | 占比 | 预估单量 | 需求人数 |\n|---|---|---|---|\n${tableRows}\n\n` +
-        `> 总需求：**${totalPersonHours.toFixed(1)}人时** | 峰值：**${fmtTime(peakSlot.h)}（${peakSlot.demand.toFixed(1)}人）**\n\n` +
-        `[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E6%88%90%E5%B1%B1%E5%86%9C%E5%9C%BA%E9%BE%99%E6%B9%96%E5%A4%A9%E8%A1%97%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)`;
-
-      const token = '0bac650a77e6b26a5e8ca2512716d7dc98535086e3814c35428ca934d554ed55';
-      const secret = 'SEC90f96c452504b95f8fbe7a08a93853b355174a53dc5268c1795049ac8a363855';
-
-      try {
-        const timestamp = Date.now().toString();
-        const stringToSign = timestamp + '\n' + secret;
-        const encoder = new TextEncoder();
-        const keyData = encoder.encode(secret);
-        const msgData = encoder.encode(stringToSign);
-        const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-        const signature = await crypto.subtle.sign('HMAC', key, msgData);
-        const sign = btoa(String.fromCharCode(...new Uint8Array(signature)));
-
-        const url = `https://oapi.dingtalk.com/robot/send?access_token=${token}&timestamp=${timestamp}&sign=${encodeURIComponent(sign)}`;
-
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            msgtype: 'markdown',
-            markdown: {
-              title: '成山农场-龙湖天街店-排班分析',
-              text: analysisMd
-            }
-          })
-        });
-        const result = await resp.json();
-        if (result.errcode === 0) {
-          status.textContent = '推送成功！';
-          status.style.color = '#52c41a';
-        } else {
-          status.textContent = '推送失败：' + result.errmsg;
-          status.style.color = '#ff4d4f';
-        }
-      } catch (err) {
-        status.textContent = '推送异常：' + err.message;
-        status.style.color = '#ff4d4f';
+    document.addEventListener('click', function(e) {
+      if (!e.target.classList.contains('bar')) {
+        document.getElementById('tooltip').style.display = 'none';
       }
-
-      btn.disabled = false;
-      btn.textContent = '推送需求分析到钉钉群';
-    }
+    });
 
     function exportExcel() {
-      const dailyVol = parseFloat(document.getElementById('dailyVolume').value) || 0;
-      const targetEff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+      const vol = parseInt(document.getElementById('dailyVolume').value) || 0;
+      const eff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+      const halfHourCap = eff / 2;
       const ratios = getRatios();
-      const halfHourCap = targetEff / 2;
-      const isWeekend = DAY_TYPES[selectedDay] === 'weekend';
-      const dayType = isWeekend ? '周末' : '工作日';
-      const dateStr = DAY_NAMES[selectedDay] + '（' + dayType + '）';
+      const dayType = DAY_TYPES[currentDay] === 'weekend' ? '周末' : '工作日';
+      const dateStr = DAY_NAMES[currentDay] + '（' + dayType + '）';
 
-      const rows = [['成山农场 龙湖天街店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + dailyVol + '单', '目标时效：' + targetEff + '单/人时'], []];
+      const rows = [['成山农场 龙湖天街店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + vol + '单', '目标时效：' + eff + '单/人时'], []];
       rows.push(['时段', '占比', '预估单量', '需求人数']);
 
       const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
       let totalVol = 0, totalDemand = 0;
-      slots.forEach(h => {
-        const key = h % 1 === 0 ? h.toFixed(1) : h.toString();
+      slots.forEach(s => {
+        const key = s % 1 === 0 ? s.toFixed(1) : s.toString();
         const ratio = ratios[key] || 0;
-        const vol = dailyVol * ratio;
-        const demand = vol / halfHourCap;
-        totalVol += vol;
+        const slotVol = vol * ratio;
+        const demand = slotVol / halfHourCap;
+        totalVol += slotVol;
         totalDemand += demand;
-        rows.push([fmtTime(h), (ratio * 100).toFixed(1) + '%', Math.round(vol), parseFloat(demand.toFixed(1))]);
+        rows.push([formatTime(s), (ratio * 100).toFixed(1) + '%', Math.round(slotVol), parseFloat(demand.toFixed(1))]);
       });
       rows.push([]);
       rows.push(['合计', '100%', Math.round(totalVol), parseFloat(totalDemand.toFixed(1))]);
@@ -418,8 +308,84 @@
       ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
       XLSX.utils.book_append_sheet(wb, ws, '排班明细');
 
-      const fileName = '成山农场龙湖天街店_排班明细_' + DAY_NAMES[selectedDay] + '.xlsx';
+      const fileName = '成山农场龙湖天街店_排班明细_' + DAY_NAMES[currentDay] + '.xlsx';
       XLSX.writeFile(wb, fileName);
+    }
+
+    async function pushToDingTalk() {
+      const btn = document.getElementById('pushBtn');
+      const status = document.getElementById('pushStatus');
+      btn.disabled = true;
+      status.textContent = '正在推送...';
+      status.style.color = '#888';
+
+      const token = "0bac650a77e6b26a5e8ca2512716d7dc98535086e3814c35428ca934d554ed55";
+      const secret = "SEC90f96c452504b95f8fbe7a08a93853b355174a53dc5268c1795049ac8a363855";
+
+      try {
+        const timestamp = Date.now().toString();
+        const stringToSign = timestamp + '\n' + secret;
+        const encoder = new TextEncoder();
+        const keyData = encoder.encode(secret);
+        const msgData = encoder.encode(stringToSign);
+        const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+        const signature = await crypto.subtle.sign('HMAC', key, msgData);
+        const sign = btoa(String.fromCharCode(...new Uint8Array(signature)));
+        const encodedSign = encodeURIComponent(sign);
+
+        const url = `https://oapi.dingtalk.com/robot/send?access_token=${token}&timestamp=${timestamp}&sign=${encodedSign}`;
+
+        const ratios = getRatios();
+        const volume = parseInt(document.getElementById('dailyVolume').value) || 0;
+        const eff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+        const halfHourCap = eff / 2;
+        const dayName = DAY_NAMES[currentDay];
+        const modeText = DAY_TYPES[currentDay] === 'weekend' ? '周末' : '工作日';
+
+        const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
+        let tableRows = '';
+        let totalPH = 0;
+        slots.forEach(s => {
+          const key = s % 1 === 0 ? s.toFixed(1) : s.toString();
+          const ratio = ratios[key] || 0;
+          const orders = (volume * ratio).toFixed(0);
+          const needed = (volume * ratio / halfHourCap).toFixed(1);
+          totalPH += parseFloat(needed);
+          tableRows += `| ${formatTime(s)} | ${(ratio * 100).toFixed(1)}% | ${orders} | ${needed} |\n`;
+        });
+
+        const md = `## 成山农场 龙湖天街店 排班需求分析\n\n` +
+          `**日期**：${dayName}（${modeText}模式）\n\n` +
+          `**预估日总量**：${volume}单 | **目标时效**：${eff}单/人时\n\n` +
+          `**总需求人时**：${(totalPH / 2).toFixed(1)}\n\n` +
+          `| 时段 | 占比 | 预估单量 | 需求人数 |\n|---|---|---|---|\n` + tableRows +
+          `\n[点击打开排班工具](${GITHUB_URL})\n\n` +
+          `> 手机可直接填写预估订单和时效，实时查看各时段人力需求`;
+
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            msgtype: 'markdown',
+            markdown: {
+              title: '成山农场-龙湖天街店-排班工具',
+              text: md
+            }
+          })
+        });
+        const result = await resp.json();
+        if (result.errcode === 0) {
+          status.textContent = '推送成功！';
+          status.style.color = '#52c41a';
+        } else {
+          status.textContent = '推送失败：' + (result.errmsg || '未知错误');
+          status.style.color = '#ff4d4f';
+        }
+      } catch (err) {
+        status.textContent = '推送失败：' + err.message;
+        status.style.color = '#ff4d4f';
+      }
+      btn.disabled = false;
     }
 
     init();
