@@ -11,7 +11,6 @@
     h1 { text-align: center; font-size: 20px; margin-bottom: 14px; color: #1a1a1a; }
     .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     .card-title { font-size: 14px; font-weight: 600; color: #666; margin-bottom: 10px; }
-
     .day-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
     .day-tab { padding: 12px 8px; border-radius: 8px; border: 1.5px solid #d9d9d9; background: #fff; cursor: pointer; font-size: 14px; transition: all 0.2s; user-select: none; flex: 1; text-align: center; min-width: 0; }
     .day-tab:hover { border-color: #4472C4; color: #4472C4; }
@@ -19,39 +18,31 @@
     .day-tab.weekend.active { background: #ff7a45; border-color: #ff7a45; }
     .day-tab.weekday { flex: 1 1 18%; }
     .day-tab.weekend-tab { flex: 1 1 48%; }
-
     .input-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: nowrap; margin-bottom: 8px; }
     .input-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
     .input-group label { font-size: 12px; color: #888; }
     .input-group input { width: 100%; padding: 12px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 16px; text-align: center; outline: none; transition: border 0.2s; }
     .input-group input:focus { border-color: #4472C4; }
     .type-label { font-size: 13px; font-weight: 600; padding: 8px 0 0; }
-
     .chart-area { position: relative; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     svg { display: block; }
     .bar { cursor: pointer; transition: opacity 0.15s, filter 0.15s; }
     .bar:hover { opacity: 0.85; filter: brightness(1.1); }
     .bar:active { opacity: 0.7; }
-
     #tooltip { position: absolute; display: none; background: rgba(0,0,0,0.82); color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.6; pointer-events: none; z-index: 10; white-space: nowrap; }
-
     .summary { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
     .summary-item { font-size: 13px; color: #666; }
     .summary-item strong { color: #333; font-size: 15px; }
-
     .legend { display: flex; gap: 12px; margin-top: 10px; font-size: 12px; color: #888; flex-wrap: wrap; }
     .legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
-
     .btn-push { display: block; width: 100%; padding: 14px 20px; border: none; border-radius: 8px; background: #4472C4; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
     .btn-push:hover { opacity: 0.9; }
     .btn-push:disabled { opacity: 0.5; cursor: not-allowed; }
     .push-status { text-align: center; margin-top: 8px; font-size: 13px; color: #888; }
-
     .detail-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
     .detail-table th { background: #fafafa; padding: 8px 4px; text-align: center; border-bottom: 1.5px solid #e0e0e0; color: #666; font-weight: 600; }
     .detail-table td { padding: 6px 4px; text-align: center; border-bottom: 1px solid #f0f0f0; }
     .detail-table tr:hover td { background: #f5f9ff; }
-
     @media (max-width: 600px) {
       body { padding: 8px; }
       h1 { font-size: 18px; }
@@ -76,11 +67,11 @@
       <div class="input-row">
         <div class="input-group">
           <label>预估日总量（单）</label>
-          <input type="number" id="dailyVolume" value="258" min="1" max="2000" onchange="recalculate()">
+          <input type="number" id="dailyVolume" value="464" min="1" max="2000" onchange="recalculate()">
         </div>
         <div class="input-group">
           <label>目标时效（单/人时）</label>
-          <input type="number" id="targetEff" value="3.5" min="0.5" max="10" step="0.1" onchange="recalculate()">
+          <input type="number" id="targetEff" value="4.5" min="0.5" max="10" step="0.1" onchange="recalculate()">
         </div>
       </div>
       <div class="type-label" id="typeLabel" style="color:#4472C4;">工作日模式</div>
@@ -102,19 +93,17 @@
         <thead><tr><th>时段</th><th>占比</th><th>预估单量</th><th>需求人数</th></tr></thead>
         <tbody></tbody>
       </table>
-      <button class="btn-export" id="exportBtn" onclick="exportExcel()" style="margin-top:12px;display:block;width:100%;padding:12px 20px;border:none;border-radius:8px;background:#52c41a;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">导出Excel表格</button>
     </div>
     <div class="card">
       <button class="btn-push" id="pushBtn" onclick="pushToDingTalk()">推送需求分析到钉钉群</button>
       <div class="push-status" id="pushStatus"></div>
     </div>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
-    const WEEKDAY_RATIOS = {"7.5":0.0225,"8.0":0.0326,"8.5":0.0535,"9.0":0.0713,"9.5":0.0512,"10.0":0.0612,"10.5":0.0535,"11.0":0.0395,"11.5":0.0364,"12.0":0.0318,"12.5":0.0333,"13.0":0.0209,"13.5":0.0202,"14.0":0.0233,"14.5":0.0225,"15.0":0.0341,"15.5":0.0302,"16.0":0.0287,"16.5":0.0271,"17.0":0.0372,"17.5":0.055,"18.0":0.0434,"18.5":0.0372,"19.0":0.0419,"19.5":0.0496,"20.0":0.0419};
-    const WEEKEND_RATIOS = {"7.5":0.0308,"8.0":0.0444,"8.5":0.0393,"9.0":0.0496,"9.5":0.065,"10.0":0.0632,"10.5":0.0838,"11.0":0.0479,"11.5":0.0376,"12.0":0.0256,"12.5":0.0256,"13.0":0.0274,"13.5":0.0308,"14.0":0.0188,"14.5":0.0274,"15.0":0.041,"15.5":0.0222,"16.0":0.0444,"16.5":0.0376,"17.0":0.0325,"17.5":0.0496,"18.0":0.0256,"18.5":0.0222,"19.0":0.041,"19.5":0.0376,"20.0":0.0291};
-    const WD_DAILY_AVG = 258;
-    const WE_DAILY_AVG = 293;
+    const WEEKDAY_RATIOS = {"7.5":0.018,"8.0":0.0255,"8.5":0.0348,"9.0":0.0776,"9.5":0.0568,"10.0":0.0582,"10.5":0.0492,"11.0":0.0388,"11.5":0.0381,"12.0":0.0284,"12.5":0.0388,"13.0":0.0356,"13.5":0.0435,"14.0":0.0356,"14.5":0.0348,"15.0":0.0406,"15.5":0.042,"16.0":0.0356,"16.5":0.0388,"17.0":0.0359,"17.5":0.0438,"18.0":0.033,"18.5":0.037,"19.0":0.0352,"19.5":0.028,"20.0":0.0162,"20.5":0.0004};
+    const WEEKEND_RATIOS = {"7.5":0.016,"8.0":0.0335,"8.5":0.0581,"9.0":0.0581,"9.5":0.0531,"10.0":0.0746,"10.5":0.0731,"11.0":0.049,"11.5":0.0285,"12.0":0.0501,"12.5":0.0285,"13.0":0.045,"13.5":0.0305,"14.0":0.0395,"14.5":0.018,"15.0":0.022,"15.5":0.0205,"16.0":0.0686,"16.5":0.0135,"17.0":0.026,"17.5":0.036,"18.0":0.0516,"18.5":0.0355,"19.0":0.0305,"19.5":0.028,"20.0":0.012};
+    const WD_DAILY_AVG = 464;
+    const WE_DAILY_AVG = 999;
     const DAY_NAMES = ['周一','周二','周三','周四','周五','周六','周日'];
     const DAY_TYPES = ['weekday','weekday','weekday','weekday','weekday','weekend','weekend'];
 
@@ -138,9 +127,7 @@
     function selectDay(idx) {
       currentDay = idx;
       const tabs = document.querySelectorAll('.day-tab');
-      tabs.forEach((t, i) => {
-        t.classList.toggle('active', i === idx);
-      });
+      tabs.forEach((t, i) => { t.classList.toggle('active', i === idx); });
       const isWeekend = DAY_TYPES[idx] === 'weekend';
       const label = document.getElementById('typeLabel');
       label.textContent = isWeekend ? '周末模式' : '工作日模式';
@@ -209,8 +196,6 @@
       const gap = chartW / data.length;
 
       let html = '';
-
-      // Y axis grid lines
       const yTicks = 5;
       for (let i = 0; i <= yTicks; i++) {
         const y = padT + chartH - (chartH * i / yTicks);
@@ -219,15 +204,12 @@
         html += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#999">${val}</text>`;
       }
 
-      // Bars
       data.forEach((d, i) => {
         const x = padL + gap * i + (gap - barW) / 2;
         const barH = (d.needed / maxVal) * chartH;
         const y = padT + chartH - barH;
         const color = getColor(d.needed, maxVal);
         html += `<rect class="bar" x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}" data-idx="${i}" onclick="showTip(event, ${i})"/>`;
-
-        // X label
         const label = formatTime(d.slot);
         const showLabel = data.length <= 20 || i % 2 === 0;
         if (showLabel) {
@@ -235,12 +217,8 @@
         }
       });
 
-      // Y axis label
       html += `<text x="14" y="${padT + chartH / 2}" text-anchor="middle" font-size="12" fill="#999" transform="rotate(-90, 14, ${padT + chartH / 2})">需求人数</text>`;
-
       svg.innerHTML = html;
-
-      // Store data for tooltip
       window._chartData = data;
     }
 
@@ -261,7 +239,6 @@
       const totalPersonHours = totalPersonHalfHours / 2;
       const peakSlot = data.reduce((max, d) => d.needed > max.needed ? d : max, data[0]);
       const peakTime = formatTime(peakSlot.slot);
-
       document.getElementById('summary').innerHTML = `
         <div class="summary-item">总需求人时：<strong>${totalPersonHours.toFixed(1)}</strong></div>
         <div class="summary-item">峰值时段：<strong>${peakTime}</strong>（${peakSlot.needed.toFixed(1)}人）</div>
@@ -275,7 +252,6 @@
       const tip = document.getElementById('tooltip');
       tip.innerHTML = `<strong>${formatTime(d.slot)}</strong><br>占比：${(d.ratio * 100).toFixed(2)}%<br>预估单量：${d.estOrders.toFixed(1)}单<br>需求人数：${d.needed.toFixed(1)}人`;
       tip.style.display = 'block';
-
       const chartArea = document.getElementById('chartArea');
       const rect = chartArea.getBoundingClientRect();
       const x = event.clientX - rect.left + chartArea.scrollLeft;
@@ -297,8 +273,8 @@
       status.textContent = '正在推送...';
       status.style.color = '#888';
 
-      const token = '1c875b2bd3f76c1d9dd5982478ae92ad20a1eae7bce50e1ee35d7a1f1fcf454c';
-      const secret = 'SEC8347a31e9e7e9d37834c6a1570500e2d5aceaa41f00caefee1e42272634a704f';
+      const token = 'd803a4c93c816453c94347900b1e834899ef48425f4ed7a7734920c79aa6cde6';
+      const secret = 'SECc9593c3fa6d00267f2fbc297a409a56f2be2da03c51f62fffdea30413b51402d';
 
       try {
         const timestamp = Date.now().toString();
@@ -337,7 +313,7 @@
           `**预估日总量**：${volume}单 | **目标时效**：${eff}单/人时\n\n` +
           `**总需求人时**：${(totalPH / 2).toFixed(1)}\n\n` +
           `| 时段 | 占比 | 预估单量 | 需求人数 |\n|---|---|---|---|\n` + tableRows +
-          `\n[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E8%81%94%E5%AE%B6%E8%B6%85%E5%B8%82%E5%8F%8C%E5%87%A4%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)\n\n` +
+          `\n[点击打开排班工具](http://30.165.100.218:8080/联家超市双凤店排班工具.html)\n\n` +
           `> 手机可直接填写预估订单和时效，实时查看各时段人力需求`;
 
         const resp = await fetch(url, {
@@ -345,10 +321,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             msgtype: 'markdown',
-            markdown: {
-              title: '联家超市-双凤店-排班工具',
-              text: md
-            }
+            markdown: { title: '联家超市-双凤店-排班工具', text: md }
           })
         });
         const result = await resp.json();
@@ -364,42 +337,6 @@
         status.style.color = '#ff4d4f';
       }
       btn.disabled = false;
-    }
-
-    function exportExcel() {
-      const vol = parseInt(document.getElementById('dailyVolume').value) || 0;
-      const eff = parseFloat(document.getElementById('targetEff').value) || 3.5;
-      const halfHourCap = eff / 2;
-      const ratios = getRatios();
-      const dayType = DAY_TYPES[currentDay] === 'weekend' ? '周末' : '工作日';
-      const dateStr = DAY_NAMES[currentDay] + '（' + dayType + '）';
-
-      const rows = [['联家超市 双凤店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + vol + '单', '目标时效：' + eff + '单/人时'], []];
-      rows.push(['时段', '占比', '预估单量', '需求人数']);
-
-      const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
-      let totalVol = 0, totalDemand = 0;
-      slots.forEach(s => {
-        const key = s % 1 === 0 ? s.toFixed(1) : s.toString();
-        const ratio = ratios[key] || 0;
-        const slotVol = vol * ratio;
-        const demand = slotVol / halfHourCap;
-        totalVol += slotVol;
-        totalDemand += demand;
-        rows.push([formatTime(s), (ratio * 100).toFixed(1) + '%', Math.round(slotVol), parseFloat(demand.toFixed(1))]);
-      });
-      rows.push([]);
-      rows.push(['合计', '100%', Math.round(totalVol), parseFloat(totalDemand.toFixed(1))]);
-      rows.push([]);
-      rows.push(['总需求人时', parseFloat((totalDemand / 2).toFixed(1))]);
-
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
-      XLSX.utils.book_append_sheet(wb, ws, '排班明细');
-
-      const fileName = '联家超市双凤店_排班明细_' + DAY_NAMES[currentDay] + '.xlsx';
-      XLSX.writeFile(wb, fileName);
     }
 
     init();
