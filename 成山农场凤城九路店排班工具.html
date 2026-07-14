@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>成山农场星旋广场店排班工具</title>
+  <title>成山农场凤城九路店排班工具</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #333; padding: 12px; }
@@ -60,14 +60,14 @@
 </head>
 <body>
   <div class="container">
-    <h1>成山农场 星旋广场店 排班工具</h1>
+    <h1>成山农场 凤城九路店 排班工具</h1>
     <div class="card">
       <div class="card-title">选择日期与参数</div>
       <div class="day-tabs" id="dayTabs"></div>
       <div class="input-row">
         <div class="input-group">
           <label>预估日总量（单）</label>
-          <input type="number" id="dailyVolume" value="146" min="1" max="5000" onchange="recalculate()">
+          <input type="number" id="dailyVolume" value="23" min="1" max="5000" onchange="recalculate()">
         </div>
         <div class="input-group">
           <label>目标时效（单/人时）</label>
@@ -102,13 +102,13 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
-    const WEEKDAY_RATIOS = {"8.0": 0.0217, "8.5": 0.0435, "9.0": 0.0297, "9.5": 0.0423, "10.0": 0.0641, "10.5": 0.0492, "11.0": 0.0572, "11.5": 0.0435, "12.0": 0.0355, "12.5": 0.0263, "13.0": 0.0263, "13.5": 0.0195, "14.0": 0.0217, "14.5": 0.0355, "15.0": 0.0263, "15.5": 0.0229, "16.0": 0.032, "16.5": 0.0606, "17.0": 0.0526, "17.5": 0.0618, "18.0": 0.0572, "18.5": 0.0423, "19.0": 0.0629, "19.5": 0.0549, "20.0": 0.0103};
-    const WEEKEND_RATIOS = {"8.0": 0.041, "8.5": 0.0265, "9.0": 0.0434, "9.5": 0.0602, "10.0": 0.0482, "10.5": 0.0795, "11.0": 0.0651, "11.5": 0.0434, "12.0": 0.0361, "12.5": 0.0434, "13.0": 0.0361, "13.5": 0.0265, "14.0": 0.0193, "14.5": 0.0458, "15.0": 0.0337, "15.5": 0.0434, "16.0": 0.0337, "16.5": 0.0313, "17.0": 0.0361, "17.5": 0.0265, "18.0": 0.041, "18.5": 0.0482, "19.0": 0.0482, "19.5": 0.0337, "20.0": 0.0072, "20.5": 0.0024};
-    const WD_DAILY_AVG = 146;
-    const WE_DAILY_AVG = 208;
+    const WEEKDAY_RATIOS = {"8.5": 0.0108, "9.0": 0.0108, "9.5": 0.0323, "10.0": 0.086, "10.5": 0.0323, "11.0": 0.043, "11.5": 0.0323, "12.0": 0.0215, "12.5": 0.0538, "13.0": 0.0538, "13.5": 0.0323, "14.0": 0.0215, "14.5": 0.0323, "15.0": 0.0215, "15.5": 0.0538, "16.0": 0.043, "16.5": 0.086, "17.0": 0.043, "17.5": 0.0538, "18.0": 0.0645, "18.5": 0.043, "19.0": 0.086, "19.5": 0.0323, "20.0": 0.0108};
+    const WEEKEND_RATIOS = {"9.0": 0.0263, "9.5": 0.0921, "10.0": 0.0789, "10.5": 0.0789, "11.0": 0.0789, "11.5": 0.0658, "12.0": 0.0526, "12.5": 0.0263, "13.0": 0.0658, "13.5": 0.0395, "14.0": 0.0132, "14.5": 0.0395, "15.0": 0.0132, "15.5": 0.0526, "16.0": 0.0263, "17.0": 0.0526, "17.5": 0.0132, "18.0": 0.0921, "19.0": 0.0395, "19.5": 0.0263, "20.0": 0.0263};
+    const WD_DAILY_AVG = 23;
+    const WE_DAILY_AVG = 38;
     const DAY_NAMES = ['周一','周二','周三','周四','周五','周六','周日'];
     const DAY_TYPES = ['weekday','weekday','weekday','weekday','weekday','weekend','weekend'];
-    const GITHUB_URL = "https://yin-min123.github.io/store-scheduling/%E6%88%90%E5%B1%B1%E5%86%9C%E5%9C%BA%E6%98%9F%E6%97%8B%E5%B9%BF%E5%9C%BA%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html";
+    const GITHUB_URL = "https://yin-min123.github.io/store-scheduling/%E6%88%90%E5%B1%B1%E5%86%9C%E5%9C%BA%E5%87%A4%E5%9F%8E%E4%B9%9D%E8%B7%AF%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html";
 
     let currentDay = 0;
 
@@ -284,7 +284,7 @@
       const dayType = DAY_TYPES[currentDay] === 'weekend' ? '周末' : '工作日';
       const dateStr = DAY_NAMES[currentDay] + '（' + dayType + '）';
 
-      const rows = [['成山农场 星旋广场店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + vol + '单', '目标时效：' + eff + '单/人时'], []];
+      const rows = [['成山农场 凤城九路店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + vol + '单', '目标时效：' + eff + '单/人时'], []];
       rows.push(['时段', '占比', '预估单量', '需求人数']);
 
       const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
@@ -308,7 +308,7 @@
       ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
       XLSX.utils.book_append_sheet(wb, ws, '排班明细');
 
-      const fileName = '成山农场星旋广场店_排班明细_' + DAY_NAMES[currentDay] + '.xlsx';
+      const fileName = '成山农场凤城九路店_排班明细_' + DAY_NAMES[currentDay] + '.xlsx';
       XLSX.writeFile(wb, fileName);
     }
 
@@ -354,7 +354,7 @@
           tableRows += `| ${formatTime(s)} | ${(ratio * 100).toFixed(1)}% | ${orders} | ${needed} |\n`;
         });
 
-        const md = `## 成山农场 星旋广场店 排班需求分析\n\n` +
+        const md = `## 成山农场 凤城九路店 排班需求分析\n\n` +
           `**日期**：${dayName}（${modeText}模式）\n\n` +
           `**预估日总量**：${volume}单 | **目标时效**：${eff}单/人时\n\n` +
           `**总需求人时**：${(totalPH / 2).toFixed(1)}\n\n` +
@@ -368,7 +368,7 @@
           body: JSON.stringify({
             msgtype: 'markdown',
             markdown: {
-              title: '成山农场-星旋广场店-排班工具',
+              title: '成山农场-凤城九路店-排班工具',
               text: md
             }
           })
