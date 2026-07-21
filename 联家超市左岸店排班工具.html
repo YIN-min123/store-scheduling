@@ -67,7 +67,7 @@
       <div class="input-row">
         <div class="input-group">
           <label>预估日总量（单）</label>
-          <input type="number" id="dailyVolume" value="93" min="1" max="2000" onchange="recalculate()">
+          <input type="number" id="dailyVolume" value="117" min="1" max="2000" onchange="recalculate()">
         </div>
         <div class="input-group">
           <label>目标时效（单/人时）</label>
@@ -93,17 +93,19 @@
         <thead><tr><th>时段</th><th>占比</th><th>预估单量</th><th>需求人数</th></tr></thead>
         <tbody></tbody>
       </table>
+      <button class="btn-export" id="exportBtn" onclick="exportExcel()" style="margin-top:12px;display:block;width:100%;padding:12px 20px;border:none;border-radius:8px;background:#52c41a;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">导出Excel表格</button>
     </div>
     <div class="card">
       <button class="btn-push" id="pushBtn" onclick="pushToDingTalk()">推送需求分析到钉钉群</button>
       <div class="push-status" id="pushStatus"></div>
     </div>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
-    const WEEKDAY_RATIOS = {"7.0":0.0107,"7.5":0.0161,"8.0":0.0322,"8.5":0.0286,"9.0":0.0394,"9.5":0.0483,"10.0":0.0644,"10.5":0.0662,"11.0":0.0555,"11.5":0.0447,"12.0":0.0215,"12.5":0.0197,"13.0":0.0233,"13.5":0.025,"14.0":0.0197,"14.5":0.025,"15.0":0.034,"15.5":0.0483,"16.0":0.034,"16.5":0.0429,"17.0":0.0358,"17.5":0.0483,"18.0":0.0447,"18.5":0.0519,"19.0":0.0537,"19.5":0.0429,"20.0":0.0215,"20.5":0.0018};
-    const WEEKEND_RATIOS = {"7.0":0.0128,"7.5":0.016,"8.0":0.0417,"8.5":0.0256,"9.0":0.0609,"9.5":0.0417,"10.0":0.0545,"10.5":0.0577,"11.0":0.0481,"11.5":0.0321,"12.0":0.0513,"12.5":0.0256,"13.0":0.0288,"13.5":0.0353,"14.0":0.0224,"14.5":0.016,"15.0":0.0192,"15.5":0.0288,"16.0":0.0256,"16.5":0.0449,"17.0":0.0417,"17.5":0.0417,"18.0":0.0353,"18.5":0.0545,"19.0":0.0577,"19.5":0.0609,"20.0":0.0192};
-    const WD_DAILY_AVG = 93;
-    const WE_DAILY_AVG = 156;
+    const WEEKDAY_RATIOS = {"0.0":0.0034,"1.0":0.0017,"3.0":0.0017,"5.0":0.0017,"6.5":0.0034,"7.0":0.0051,"7.5":0.0069,"8.0":0.0377,"8.5":0.048,"9.0":0.036,"9.5":0.0429,"10.0":0.0463,"10.5":0.06,"11.0":0.0429,"11.5":0.0343,"12.0":0.0515,"12.5":0.0343,"13.0":0.0292,"13.5":0.0206,"14.0":0.0257,"14.5":0.0223,"15.0":0.0429,"15.5":0.0274,"16.0":0.0292,"16.5":0.0446,"17.0":0.0515,"17.5":0.048,"18.0":0.0343,"18.5":0.036,"19.0":0.036,"19.5":0.0429,"20.0":0.0343,"20.5":0.0017,"21.0":0.0103,"21.5":0.0017,"22.0":0.0034};
+    const WEEKEND_RATIOS = {"0.0":0.0037,"5.5":0.0037,"6.0":0.0037,"6.5":0.0037,"7.0":0.0037,"7.5":0.0111,"8.0":0.0258,"8.5":0.0627,"9.0":0.0443,"9.5":0.059,"10.0":0.0369,"10.5":0.0554,"11.0":0.059,"11.5":0.0443,"12.0":0.048,"12.5":0.0295,"13.0":0.0221,"13.5":0.0258,"14.0":0.0332,"14.5":0.0369,"15.0":0.0185,"15.5":0.0369,"16.0":0.0332,"16.5":0.0332,"17.0":0.0443,"17.5":0.0221,"18.0":0.059,"18.5":0.0369,"19.0":0.0295,"19.5":0.0332,"20.0":0.0332,"20.5":0.0037,"21.5":0.0037};
+    const WD_DAILY_AVG = 117;
+    const WE_DAILY_AVG = 136;
     const DAY_NAMES = ['周一','周二','周三','周四','周五','周六','周日'];
     const DAY_TYPES = ['weekday','weekday','weekday','weekday','weekday','weekend','weekend'];
 
@@ -266,6 +268,42 @@
       }
     });
 
+    function exportExcel() {
+      const vol = parseInt(document.getElementById('dailyVolume').value) || 0;
+      const eff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+      const halfHourCap = eff / 2;
+      const ratios = getRatios();
+      const dayType = DAY_TYPES[currentDay] === 'weekend' ? '周末' : '工作日';
+      const dateStr = DAY_NAMES[currentDay] + '（' + dayType + '）';
+
+      const rows = [['联家超市 左岸店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + vol + '单', '目标时效：' + eff + '单/人时'], []];
+      rows.push(['时段', '占比', '预估单量', '需求人数']);
+
+      const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
+      let totalVol = 0, totalDemand = 0;
+      slots.forEach(s => {
+        const key = s % 1 === 0 ? s.toFixed(1) : s.toString();
+        const ratio = ratios[key] || 0;
+        const slotVol = vol * ratio;
+        const demand = slotVol / halfHourCap;
+        totalVol += slotVol;
+        totalDemand += demand;
+        rows.push([formatTime(s), (ratio * 100).toFixed(1) + '%', Math.round(slotVol), parseFloat(demand.toFixed(1))]);
+      });
+      rows.push([]);
+      rows.push(['合计', '100%', Math.round(totalVol), parseFloat(totalDemand.toFixed(1))]);
+      rows.push([]);
+      rows.push(['总需求人时', parseFloat((totalDemand / 2).toFixed(1))]);
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(wb, ws, '排班明细');
+
+      const fileName = '联家超市左岸店_排班明细_' + DAY_NAMES[currentDay] + '.xlsx';
+      XLSX.writeFile(wb, fileName);
+    }
+
     async function pushToDingTalk() {
       const btn = document.getElementById('pushBtn');
       const status = document.getElementById('pushStatus');
@@ -273,8 +311,8 @@
       status.textContent = '正在推送...';
       status.style.color = '#888';
 
-      const token = 'd803a4c93c816453c94347900b1e834899ef48425f4ed7a7734920c79aa6cde6';
-      const secret = 'SECc9593c3fa6d00267f2fbc297a409a56f2be2da03c51f62fffdea30413b51402d';
+      const token = '1c875b2bd3f76c1d9dd5982478ae92ad20a1eae7bce50e1ee35d7a1f1fcf454c';
+      const secret = 'SEC8347a31e9e7e9d37834c6a1570500e2d5aceaa41f00caefee1e42272634a704f';
 
       try {
         const timestamp = Date.now().toString();
@@ -313,7 +351,7 @@
           `**预估日总量**：${volume}单 | **目标时效**：${eff}单/人时\n\n` +
           `**总需求人时**：${(totalPH / 2).toFixed(1)}\n\n` +
           `| 时段 | 占比 | 预估单量 | 需求人数 |\n|---|---|---|---|\n` + tableRows +
-          `\n[点击打开排班工具](http://30.165.100.218:8080/联家超市左岸店排班工具.html)\n\n` +
+          `\n[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E8%81%94%E5%AE%B6%E8%B6%85%E5%B8%82%E5%B7%A6%E5%B2%B8%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)\n\n` +
           `> 手机可直接填写预估订单和时效，实时查看各时段人力需求`;
 
         const resp = await fetch(url, {
