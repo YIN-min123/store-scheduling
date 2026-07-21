@@ -93,12 +93,14 @@
         <thead><tr><th>时段</th><th>占比</th><th>预估单量</th><th>需求人数</th></tr></thead>
         <tbody></tbody>
       </table>
+      <button class="btn-export" id="exportBtn" onclick="exportExcel()" style="margin-top:12px;display:block;width:100%;padding:12px 20px;border:none;border-radius:8px;background:#52c41a;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">导出Excel表格</button>
     </div>
     <div class="card">
       <button class="btn-push" id="pushBtn" onclick="pushToDingTalk()">推送需求分析到钉钉群</button>
       <div class="push-status" id="pushStatus"></div>
     </div>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     const WEEKDAY_RATIOS = {"7.5":0.0138,"8.0":0.0363,"8.5":0.0465,"9.0":0.0537,"9.5":0.0632,"10.0":0.0472,"10.5":0.0581,"11.0":0.0436,"11.5":0.045,"12.0":0.0283,"12.5":0.0349,"13.0":0.0211,"13.5":0.0174,"14.0":0.0196,"14.5":0.0356,"15.0":0.0312,"15.5":0.0392,"16.0":0.0465,"16.5":0.0552,"17.0":0.0588,"17.5":0.0392,"18.0":0.045,"18.5":0.0472,"19.0":0.0334,"19.5":0.0247,"20.0":0.0153};
     const WEEKEND_RATIOS = {"7.5":0.0203,"8.0":0.0356,"8.5":0.0373,"9.0":0.0542,"9.5":0.0525,"10.0":0.061,"10.5":0.0644,"11.0":0.0763,"11.5":0.0373,"12.0":0.0458,"12.5":0.0288,"13.0":0.0441,"13.5":0.0288,"14.0":0.0271,"14.5":0.0322,"15.0":0.0288,"15.5":0.0356,"16.0":0.0356,"16.5":0.0441,"17.0":0.0593,"17.5":0.0356,"18.0":0.039,"18.5":0.0169,"19.0":0.0305,"19.5":0.0237,"20.0":0.0051};
@@ -265,6 +267,42 @@
         document.getElementById('tooltip').style.display = 'none';
       }
     });
+
+    function exportExcel() {
+      const vol = parseInt(document.getElementById('dailyVolume').value) || 0;
+      const eff = parseFloat(document.getElementById('targetEff').value) || 4.5;
+      const halfHourCap = eff / 2;
+      const ratios = getRatios();
+      const dayType = DAY_TYPES[currentDay] === 'weekend' ? '周末' : '工作日';
+      const dateStr = DAY_NAMES[currentDay] + '（' + dayType + '）';
+
+      const rows = [['联家超市 双凤店 排班需求分析'], ['日期：' + dateStr, '预估日总量：' + vol + '单', '目标时效：' + eff + '单/人时'], []];
+      rows.push(['时段', '占比', '预估单量', '需求人数']);
+
+      const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
+      let totalVol = 0, totalDemand = 0;
+      slots.forEach(s => {
+        const key = s % 1 === 0 ? s.toFixed(1) : s.toString();
+        const ratio = ratios[key] || 0;
+        const slotVol = vol * ratio;
+        const demand = slotVol / halfHourCap;
+        totalVol += slotVol;
+        totalDemand += demand;
+        rows.push([formatTime(s), (ratio * 100).toFixed(1) + '%', Math.round(slotVol), parseFloat(demand.toFixed(1))]);
+      });
+      rows.push([]);
+      rows.push(['合计', '100%', Math.round(totalVol), parseFloat(totalDemand.toFixed(1))]);
+      rows.push([]);
+      rows.push(['总需求人时', parseFloat((totalDemand / 2).toFixed(1))]);
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(wb, ws, '排班明细');
+
+      const fileName = '联家超市双凤店_排班明细_' + DAY_NAMES[currentDay] + '.xlsx';
+      XLSX.writeFile(wb, fileName);
+    }
 
     async function pushToDingTalk() {
       const btn = document.getElementById('pushBtn');
