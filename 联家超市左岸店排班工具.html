@@ -79,7 +79,7 @@
     <div class="card">
       <div class="card-title">各时段需求人数</div>
       <div class="chart-area" id="chartArea">
-        <svg id="barChart" viewBox="0 0 900 340" width="100%" height="340"></svg>
+        <svg id="barChart" viewBox="0 0 1200 340" width="100%" height="340"></svg>
         <div id="tooltip"></div>
       </div>
       <div class="legend">
@@ -188,13 +188,13 @@
 
     function drawBarChart(data) {
       const svg = document.getElementById('barChart');
-      const W = 900, H = 340;
-      const padL = 50, padR = 20, padT = 20, padB = 60;
+      const W = 1200, H = 340;
+      const padL = 50, padR = 30, padT = 20, padB = 60;
       const chartW = W - padL - padR;
       const chartH = H - padT - padB;
 
       const maxVal = Math.max(...data.map(d => d.needed), 0.1);
-      const barW = Math.min(chartW / data.length * 0.65, 28);
+      const barW = Math.min(chartW / data.length * 0.7, 32);
       const gap = chartW / data.length;
 
       let html = '';
@@ -213,7 +213,7 @@
         const color = getColor(d.needed, maxVal);
         html += `<rect class="bar" x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}" data-idx="${i}" onclick="showTip(event, ${i})"/>`;
         const label = formatTime(d.slot);
-        const showLabel = data.length <= 20 || i % 2 === 0;
+        const showLabel = data.length <= 15 || i % Math.ceil(data.length / 15) === 0;
         if (showLabel) {
           html += `<text x="${x + barW / 2}" y="${padT + chartH + 18}" text-anchor="middle" font-size="10" fill="#999" transform="rotate(-35, ${x + barW / 2}, ${padT + chartH + 18})">${label}</text>`;
         }
@@ -346,13 +346,16 @@
           tableRows += `| ${formatTime(s)} | ${(ratio * 100).toFixed(1)}% | ${orders} | ${needed} |\n`;
         });
 
-        const md = `## 联家超市 左岸店 排班需求分析\n\n` +
-          `**日期**：${dayName}（${modeText}模式）\n\n` +
-          `**预估日总量**：${volume}单 | **目标时效**：${eff}单/人时\n\n` +
-          `**总需求人时**：${(totalPH / 2).toFixed(1)}\n\n` +
-          `| 时段 | 占比 | 预估单量 | 需求人数 |\n|---|---|---|---|\n` + tableRows +
-          `\n[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E8%81%94%E5%AE%B6%E8%B6%85%E5%B8%82%E5%B7%A6%E5%B2%B8%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)\n\n` +
-          `> 手机可直接填写预估订单和时效，实时查看各时段人力需求`;
+        const md = `## 联家超市 左岸店 排班工具（新增）\n\n` +
+          `填写预估订单量和时效，自动计算各半小时时段人力需求\n\n` +
+          `[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E8%81%94%E5%AE%B6%E8%B6%85%E5%B8%82%E5%B7%A6%E5%B2%B8%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)\n\n` +
+          `> 手机可直接填写，支持导出Excel、推送钉钉\n\n` +
+          `**使用说明：**\n` +
+          `1. 选择周一~周日（工作日/周末自动切换）\n` +
+          `2. 填写预估日总量（默认已填入历史日均）\n` +
+          `3. 填写目标时效（默认 4.5 单/人时）\n` +
+          `4. 查看柱状图和明细表\n` +
+          `5. 可导出Excel或推送钉钉群`;
 
         const resp = await fetch(url, {
           method: 'POST',
