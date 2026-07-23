@@ -156,7 +156,7 @@
 
       const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
       const data = slots.map(s => {
-        const key = s % 1 === 0 ? s.toFixed(1) : s.toString();
+        const key = String(s);
         const ratio = ratios[key] || 0;
         const estOrders = volume * ratio;
         const needed = estOrders / halfHourCap;
@@ -282,7 +282,7 @@
       const slots = Object.keys(ratios).map(k => parseFloat(k)).sort((a, b) => a - b);
       let totalVol = 0, totalDemand = 0;
       slots.forEach(s => {
-        const key = s % 1 === 0 ? s.toFixed(1) : s.toString();
+        const key = String(s);
         const ratio = ratios[key] || 0;
         const slotVol = vol * ratio;
         const demand = slotVol / halfHourCap;
@@ -338,7 +338,7 @@
         let tableRows = '';
         let totalPH = 0;
         slots.forEach(s => {
-          const key = s % 1 === 0 ? s.toFixed(1) : s.toString();
+          const key = String(s);
           const ratio = ratios[key] || 0;
           const orders = (volume * ratio).toFixed(0);
           const needed = (volume * ratio / halfHourCap).toFixed(1);
