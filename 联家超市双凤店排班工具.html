@@ -346,13 +346,16 @@
           tableRows += `| ${formatTime(s)} | ${(ratio * 100).toFixed(1)}% | ${orders} | ${needed} |\n`;
         });
 
-        const md = `## 联家超市 双凤店 排班需求分析\n\n` +
-          `**日期**：${dayName}（${modeText}模式）\n\n` +
-          `**预估日总量**：${volume}单 | **目标时效**：${eff}单/人时\n\n` +
-          `**总需求人时**：${(totalPH / 2).toFixed(1)}\n\n` +
-          `| 时段 | 占比 | 预估单量 | 需求人数 |\n|---|---|---|---|\n` + tableRows +
-          `\n[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E8%81%94%E5%AE%B6%E8%B6%85%E5%B8%82%E5%8F%8C%E5%87%A4%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)\n\n` +
-          `> 手机可直接填写预估订单和时效，实时查看各时段人力需求`;
+        const md = `## 联家超市 双凤店 排班工具（新增）\n\n` +
+          `填写预估订单量和时效，自动计算各半小时时段人力需求\n\n` +
+          `[点击打开排班工具](https://yin-min123.github.io/store-scheduling/%E8%81%94%E5%AE%B6%E8%B6%85%E5%B8%82%E5%8F%8C%E5%87%A4%E5%BA%97%E6%8E%92%E7%8F%AD%E5%B7%A5%E5%85%B7.html)\n\n` +
+          `> 手机可直接填写，支持导出Excel、推送钉钉\n\n` +
+          `**使用说明：**\n` +
+          `1. 选择周一~周日（工作日/周末自动切换）\n` +
+          `2. 填写预估日总量（默认已填入历史日均）\n` +
+          `3. 填写目标时效（默认 4.5 单/人时）\n` +
+          `4. 查看柱状图和明细表\n` +
+          `5. 可导出Excel或推送钉钉群`;
 
         const resp = await fetch(url, {
           method: 'POST',
