@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>联家超柿出勤监控 09:30</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f0f2f5;color:#1a1a2e;padding:16px}
+.container{max-width:720px;margin:0 auto}
+.header{background:linear-gradient(135deg,#1a3a5c,#2d5f8a);color:#fff;border-radius:12px;padding:20px 24px;margin-bottom:16px}
+.header h1{font-size:20px;margin-bottom:6px}
+.header .meta{font-size:13px;opacity:0.85}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:10px;padding:14px 12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.kpi .val{font-size:22px;font-weight:700;color:#1a3a5c}
+.kpi .label{font-size:12px;color:#7a6a5a;margin-top:4px}
+.section{background:#fff;border-radius:10px;padding:16px 20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.section h3{font-size:15px;color:#1a3a5c;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e8e8e8}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f5f7fa;color:#555;font-weight:600;text-align:left;padding:8px 10px}
+td{padding:8px 10px;border-bottom:1px solid #f0f0f0}
+.rate-high{color:#2d8a4e;font-weight:700}
+.rate-mid{color:#e67e22;font-weight:700}
+.rate-low{color:#c0392b;font-weight:700}
+.cat-ok{color:#2d8a4e}
+.cat-off{color:#c0392b;font-weight:700}
+.footer{text-align:center;font-size:11px;color:#aaa;padding:12px}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>联家超柿出勤监控 (09:30)</h1>
+        <div class="meta">抓取时间：2026-07-31 09:35:23</div>
+    </div>
+
+    <div class="kpi-row">
+        <div class="kpi"><div class="val">646</div><div class="label">监控SKU</div></div>
+        <div class="kpi"><div class="val">594</div><div class="label">在架</div></div>
+        <div class="kpi"><div class="val">52</div><div class="label">下架</div></div>
+        <div class="kpi"><div class="val" style="color:#e67e22">92.0%</div><div class="label">出勤率</div></div>
+    </div>
+
+    <div class="section">
+        <h3>📊 门店出勤</h3>
+        <table>
+            <thead><tr><th>门店</th><th>监控</th><th>在架</th><th>下架</th><th>出勤率</th></tr></thead>
+            <tbody>
+            <tr>
+                <td>联家超柿(双凤店)</td>
+                <td>322</td>
+                <td>307</td>
+                <td>15</td>
+                <td class="rate-high">95.3%</td>
+            </tr><tr>
+                <td>联家超柿(左岸店)</td>
+                <td>324</td>
+                <td>287</td>
+                <td>37</td>
+                <td class="rate-mid">88.6%</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    
+
+    <div class="section">
+        <h3> 分类目下架统计</h3>
+        
+        <div style="margin-bottom:14px">
+            <div style="font-size:14px;font-weight:600;color:#1a3a5c;margin-bottom:6px">联家超柿(双凤店)（下架15个）</div>
+            <table><thead><tr><th>类目</th><th>状态</th></tr></thead>
+            <tbody><tr><td>蔬菜</td><td class="cat-ok">✅ 全部在架</td></tr><tr><td>水果</td><td class="cat-ok">✅ 全部在架</td></tr><tr><td>肉禽蛋类</td><td class="cat-off">下架 1 个</td></tr><tr><td>水产</td><td class="cat-ok">✅ 全部在架</td></tr><tr><td>豆制品</td><td class="cat-off">下架 6 个</td></tr><tr><td>鲜食/熟食</td><td class="cat-off">下架 1 个</td></tr></tbody></table>
+        </div>
+        <div style="margin-bottom:14px">
+            <div style="font-size:14px;font-weight:600;color:#1a3a5c;margin-bottom:6px">联家超柿(左岸店)（下架37个）</div>
+            <table><thead><tr><th>类目</th><th>状态</th></tr></thead>
+            <tbody><tr><td>蔬菜</td><td class="cat-off">下架 2 个</td></tr><tr><td>水果</td><td class="cat-ok">✅ 全部在架</td></tr><tr><td>肉禽蛋类</td><td class="cat-off">下架 3 个</td></tr><tr><td>水产</td><td class="cat-ok">✅ 全部在架</td></tr><tr><td>豆制品</td><td class="cat-off">下架 3 个</td></tr><tr><td>鲜食/熟食</td><td class="cat-off">下架 1 个</td></tr></tbody></table>
+        </div>
+    </div>
+
+    <div class="section">
+            <h3> 下架商品明细（17条真实下架 + 35条未匹配）</h3>
+            
+            <div style="margin-bottom:16px">
+                <div style="font-size:15px;font-weight:700;color:#1a3a5c;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #2d5f8a">联家超柿(双凤店)（共15个下架，含7个未匹配）</div>
+                
+                <div style="margin-bottom:10px">
+                    <div style="font-size:13px;font-weight:600;color:#2d5f8a;margin-bottom:4px">豆制品（6个）</div>
+                    <table><thead><tr><th>商品</th><th>条码</th><th>月售</th></tr></thead>
+                    <tbody><tr>
+                    <td>人人福嫩豆腐约450-500g</td>
+                    <td>3112600002760</td>
+                    <td>119</td>
+                </tr><tr>
+                    <td>内脂豆腐350g（盒装）</td>
+                    <td>6973732290015</td>
+                    <td>98</td>
+                </tr><tr>
+                    <td>人人福连体酱干250-300g（4片）</td>
+                    <td>3112600002791</td>
+                    <td>83</td>
+                </tr><tr>
+                    <td>人人福连体白干250-300g（4片）</td>
+                    <td>3112600002647</td>
+                    <td>22</td>
+                </tr><tr>
+                    <td>人人福薄油干约200g</td>
+                    <td>3000125003549</td>
+                    <td>7</td>
+                </tr><tr>
+                    <td>精品薄千张约150g</td>
+                    <td>3000125004478</td>
+                    <td>0</td>
+                </tr></tbody></table>
+                </div>
+                <div style="margin-bottom:10px">
+                    <div style="font-size:13px;font-weight:600;color:#2d5f8a;margin-bottom:4px">肉禽蛋类（1个）</div>
+                    <table><thead><tr><th>商品</th><th>条码</th><th>月售</th></tr></thead>
+                    <tbody><tr>
+                    <td>鲜鸡蛋15枚约750g</td>
+                    <td>3112500000736</td>
+                    <td>75</td>
+                </tr></tbody></table>
+                </div>
+                <div style="margin-bottom:10px">
+                    <div style="font-size:13px;font-weight:600;color:#2d5f8a;margin-bottom:4px">鲜食/熟食（1个）</div>
+                    <table><thead><tr><th>商品</th><th>条码</th><th>月售</th></tr></thead>
+                    <tbody><tr>
+                    <td>香葱饼20-50g</td>
+                    <td>3126430004412</td>
+                    <td>5</td>
+                </tr></tbody></table>
+                </div>
+            </div>
+            <div style="margin-bottom:16px">
+                <div style="font-size:15px;font-weight:700;color:#1a3a5c;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #2d5f8a">联家超柿(左岸店)（共37个下架，含28个未匹配）</div>
+                
+                <div style="margin-bottom:10px">
+                    <div style="font-size:13px;font-weight:600;color:#2d5f8a;margin-bottom:4px">豆制品（3个）</div>
+                    <table><thead><tr><th>商品</th><th>条码</th><th>月售</th></tr></thead>
+                    <tbody><tr>
+                    <td>人人福千张约200g</td>
+                    <td>3112600002746</td>
+                    <td>44</td>
+                </tr><tr>
+                    <td>人人福五香皮条干约140g（5片）</td>
+                    <td>3112600003637</td>
+                    <td>4</td>
+                </tr><tr>
+                    <td>皖南臭干约270g±10</td>
+                    <td>3112600002685</td>
+                    <td>0</td>
+                </tr></tbody></table>
+                </div>
+                <div style="margin-bottom:10px">
+                    <div style="font-size:13px;font-weight:600;color:#2d5f8a;margin-bottom:4px">肉禽蛋类（3个）</div>
+                    <table><thead><tr><th>商品</th><th>条码</th><th>月售</th></tr></thead>
+                    <tbody><tr>
+                    <td>【超实惠】新鲜牛腱肉约1kg</td>
+                    <td>3112200100156</td>
+                    <td>0</td>
+                </tr><tr>
+                    <td>圣农单冻翅根500g</td>
+                    <td>6924766600028</td>
+                    <td>0</td>
+                </tr><tr>
+                    <td>圣农鸡胸肉500g</td>
+                    <td>6924766600035</td>
+                    <td>0</td>
+                </tr></tbody></table>
+                </div>
+                <div style="margin-bottom:10px">
+                    <div style="font-size:13px;font-weight:600;color:#2d5f8a;margin-bottom:4px">蔬菜（2个）</div>
+                    <table><thead><tr><th>商品</th><th>条码</th><th>月售</th></tr></thead>
+                    <tbody><tr>
+                    <td>青西红柿450-500g</td>
+                    <td>3112000001608</td>
+                    <td>13</td>
+                </tr><tr>
+                    <td>鹿茸菇约350g</td>
+                    <td>3112150001367</td>
+                    <td>0</td>
+                </tr></tbody></table>
+                </div>
+                <div style="margin-bottom:10px">
+                    <div style="font-size:13px;font-weight:600;color:#2d5f8a;margin-bottom:4px">鲜食/熟食（1个）</div>
+                    <table><thead><tr><th>商品</th><th>条码</th><th>月售</th></tr></thead>
+                    <tbody><tr>
+                    <td>桃李汉堡面包220g</td>
+                    <td>6972333770254</td>
+                    <td>0</td>
+                </tr></tbody></table>
+                </div>
+            </div>
+        </div>
+
+    <div class="footer">联家超柿出勤监控 · 自动生成</div>
+</div>
+</body>
+</html>
