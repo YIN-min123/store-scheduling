@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>联家超柿 生鲜出勤监控 2026-07-31</title>
+<style>
+:root {
+  --primary: #1a3a5c;
+  --primary-light: #2d5f8a;
+  --accent: #3a7bd5;
+  --bg: #f0f4f8;
+  --card-bg: #ffffff;
+  --text: #2c3e50;
+  --text-light: #7a6a5a;
+  --green: #27ae60;
+  --red: #c0392b;
+  --orange: #e67e22;
+  --border: #dce4ec;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+.hero {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: #fff; padding: 32px 20px 24px; text-align: center;
+}
+.hero h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+.hero .subtitle { font-size: 14px; opacity: 0.85; }
+.hero .time-badge {
+  display: inline-block; background: rgba(255,255,255,0.15); border-radius: 20px;
+  padding: 4px 16px; font-size: 13px; margin-top: 10px;
+}
+
+.container { max-width: 680px; margin: 0 auto; padding: 16px; }
+
+/* Summary Cards */
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.summary-card {
+  background: var(--card-bg); border-radius: 12px; padding: 18px; text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--border);
+}
+.summary-card .store-name { font-size: 14px; color: var(--text-light); margin-bottom: 8px; }
+.summary-card .rate { font-size: 36px; font-weight: 700; }
+.summary-card .rate.good { color: var(--green); }
+.summary-card .rate.warn { color: var(--orange); }
+.summary-card .rate.bad { color: var(--red); }
+.summary-card .detail { font-size: 12px; color: var(--text-light); margin-top: 6px; }
+
+.overall-bar {
+  background: var(--card-bg); border-radius: 12px; padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--border);
+  margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
+}
+.overall-bar .label { font-size: 14px; color: var(--text-light); }
+.overall-bar .value { font-size: 24px; font-weight: 700; color: var(--green); }
+
+/* Section */
+.section { margin-bottom: 20px; }
+.section-title {
+  font-size: 16px; font-weight: 600; color: var(--primary); margin-bottom: 12px;
+  padding-bottom: 8px; border-bottom: 2px solid var(--accent);
+}
+
+/* Off-shelf table */
+.offshelf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.offshelf-table th {
+  background: var(--primary); color: #fff; padding: 10px 8px;
+  text-align: left; font-weight: 500;
+}
+.offshelf-table td { padding: 10px 8px; border-bottom: 1px solid var(--border); }
+.offshelf-table tr:hover { background: #f5f8fb; }
+.offshelf-table .status-off { color: var(--red); font-weight: 600; }
+.offshelf-table .cat-tag {
+  display: inline-block; background: #e8f0fe; color: var(--accent); border-radius: 4px;
+  padding: 2px 8px; font-size: 11px;
+}
+
+/* Progress bar */
+.progress-wrap { margin-top: 8px; }
+.progress-bar { height: 8px; background: #e8ecf0; border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+.progress-fill.good { background: var(--green); }
+.progress-fill.warn { background: var(--orange); }
+
+/* Category breakdown */
+.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.cat-item {
+  background: #f8fafc; border-radius: 8px; padding: 10px 12px;
+  display: flex; justify-content: space-between; align-items: center; font-size: 13px;
+}
+.cat-item .cat-name { color: var(--text-light); }
+.cat-item .cat-count { font-weight: 600; }
+.cat-item .cat-count.has-off { color: var(--red); }
+
+.footer {
+  text-align: center; padding: 20px; font-size: 12px; color: var(--text-light);
+  border-top: 1px solid var(--border); margin-top: 20px;
+}
+
+/* Store tabs for off-shelf detail */
+.tab-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+.tab-btn {
+  padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--card-bg); font-size: 13px; cursor: pointer; color: var(--text-light);
+  transition: all 0.2s;
+}
+.tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+@media (max-width: 480px) {
+  .summary-grid { grid-template-columns: 1fr; }
+  .cat-grid { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>联家超柿 生鲜出勤监控</h1>
+  <div class="subtitle">蔬菜 / 水果 / 肉禽蛋类 / 水产 / 豆制品 / 鲜食熟食</div>
+  <div class="time-badge">2026-07-31 14:55 抓取</div>
+</div>
+
+<div class="container">
+
+  <div class="overall-bar">
+    <div>
+      <div class="label">综合出勤率</div>
+      <div style="font-size:12px;color:var(--text-light)">监控400个SKU / 2店 x TOP200</div>
+    </div>
+    <div class="value">97.5%</div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="store-name">联家超柿(双凤店)</div>
+      <div class="rate good">96.5%</div>
+      <div class="detail">监控200个 / 在架193个 / 下架7个</div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill good" style="width:96.5%"></div></div>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="store-name">联家超柿(左岸店)</div>
+      <div class="rate good">98.5%</div>
+      <div class="detail">监控200个 / 在架197个 / 下架3个</div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill good" style="width:98.5%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">下架商品明细（10条）</div>
+
+    <div class="tab-bar">
+      <div class="tab-btn active" onclick="switchTab('sf')">双凤店（7）</div>
+      <div class="tab-btn" onclick="switchTab('za')">左岸店（3）</div>
+    </div>
+
+    <div id="tab-sf" class="tab-content active">
+      <table class="offshelf-table">
+        <thead><tr><th>商品名称</th><th>类目</th><th>月售</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td>正大30枚鲜鸡蛋1.59kg</td><td><span class="cat-tag">肉禽蛋类</span></td><td>231</td><td class="status-off">下架</td></tr>
+          <tr><td>鸡毛菜约250-270g</td><td><span class="cat-tag">蔬菜</span></td><td>175</td><td class="status-off">下架</td></tr>
+          <tr><td>油丝瓜450-550g（2-3根）</td><td><span class="cat-tag">蔬菜</span></td><td>139</td><td class="status-off">下架</td></tr>
+          <tr><td>【超实惠】红苋菜500-550</td><td><span class="cat-tag">蔬菜</span></td><td>80</td><td class="status-off">下架</td></tr>
+          <tr><td>烟台栖霞红富士2粒装约550g/份</td><td><span class="cat-tag">水果</span></td><td>33</td><td class="status-off">下架</td></tr>
+          <tr><td>红苋菜250-270g</td><td><span class="cat-tag">蔬菜</span></td><td>33</td><td class="status-off">下架</td></tr>
+          <tr><td>人人福连体白干250-300g（4片）</td><td><span class="cat-tag">豆制品</span></td><td>22</td><td class="status-off">下架</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="tab-za" class="tab-content">
+      <table class="offshelf-table">
+        <thead><tr><th>商品名称</th><th>类目</th><th>月售</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td>青西红柿450-500g</td><td><span class="cat-tag">蔬菜</span></td><td>13</td><td class="status-off">下架</td></tr>
+          <tr><td>山东羊角蜜650-700g/个</td><td><span class="cat-tag">水果</span></td><td>16</td><td class="status-off">下架</td></tr>
+          <tr><td>【大号】小龙虾约500g/份</td><td><span class="cat-tag">水产</span></td><td>12</td><td class="status-off">下架</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">品类下架分布</div>
+    <div class="cat-grid">
+      <div class="cat-item"><span class="cat-name">蔬菜</span><span class="cat-count has-off">6个下架</span></div>
+      <div class="cat-item"><span class="cat-name">水果</span><span class="cat-count has-off">2个下架</span></div>
+      <div class="cat-item"><span class="cat-name">肉禽蛋类</span><span class="cat-count has-off">1个下架</span></div>
+      <div class="cat-item"><span class="cat-name">水产</span><span class="cat-count has-off">1个下架</span></div>
+      <div class="cat-item"><span class="cat-name">豆制品</span><span class="cat-count has-off">1个下架</span></div>
+      <div class="cat-item"><span class="cat-name">鲜食熟食</span><span class="cat-count">0个下架</span></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    联家超柿 生鲜出勤监控报告 | 小二：于洋 | 生成时间 2026-07-31 14:55<br>
+    监控口径：6大生鲜一级类目 x 月售TOP200/店
+  </div>
+
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
