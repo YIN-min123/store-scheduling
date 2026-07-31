@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>联家超柿出勤监控 17:30</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f0f2f5;color:#1a1a2e;padding:0}
+.container{max-width:720px;margin:0 auto;padding:16px}
+
+/* Header */
+.header{background:linear-gradient(135deg,#1a3a5c,#2d5f8a);color:#fff;border-radius:14px;padding:22px 24px;margin-bottom:16px}
+.header h1{font-size:20px;margin-bottom:4px}
+.header .meta{font-size:13px;opacity:0.85}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.kpi{background:rgba(255,255,255,0.15);border-radius:10px;padding:12px 8px;text-align:center}
+.kpi .val{font-size:22px;font-weight:700}
+.kpi .label{font-size:11px;opacity:0.8;margin-top:2px}
+
+/* Priority tags row */
+.priority-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.priority-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600}
+
+/* Store cards */
+.store-card{background:#fff;border-radius:12px;padding:18px 20px;margin-bottom:14px;box-shadow:0 2px 6px rgba(0,0,0,0.06)}
+.store-header{margin-bottom:14px}
+.store-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.store-name{font-size:17px;font-weight:700;color:#1a3a5c}
+.store-stats{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:8px}
+.stat-big,.stat-small{text-align:center}
+.stat-num{display:block;font-size:24px;font-weight:700;color:#1a3a5c}
+.stat-big .stat-num{font-size:32px}
+.stat-label{font-size:11px;color:#7a6a5a;display:block;margin-top:2px}
+
+/* Checklist */
+.checklist{border-top:1px solid #f0f0f0;padding-top:12px}
+.checklist-item{display:flex;align-items:flex-start;gap:10px;padding:10px 8px;border-bottom:1px solid #f8f8f8;cursor:pointer;border-radius:8px;transition:background 0.15s}
+.checklist-item:hover{background:#f5f7fa}
+.checklist-item input[type="checkbox"]{margin-top:3px;width:18px;height:18px;accent-color:#2d5f8a;cursor:pointer;flex-shrink:0}
+.checklist-item.checked{opacity:0.45;text-decoration:line-through}
+.item-info{flex:1;min-width:0}
+.item-name{display:block;font-size:14px;font-weight:500;color:#1a1a2e;word-break:break-all}
+.item-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;font-size:12px;color:#999}
+.item-cat{background:#eef3f8;padding:1px 6px;border-radius:4px;font-size:11px}
+.item-barcode{font-family:monospace;color:#aaa}
+.item-ms{color:#e67e22;font-weight:600}
+.all-ok{text-align:center;padding:20px;color:#2d8a4e;font-size:15px}
+
+/* Expand button */
+.expand-btn{display:block;width:100%;text-align:center;padding:10px;margin-top:8px;background:#f5f7fa;border:1px dashed #ccc;border-radius:8px;color:#2d5f8a;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.15s}
+.expand-btn:hover{background:#eef3f8}
+
+/* Done count */
+.done-count{text-align:center;padding:8px;margin-top:6px;font-size:13px;color:#7a6a5a;font-weight:500}
+
+/* Section */
+.section{background:#fff;border-radius:12px;padding:18px 20px;margin-bottom:14px;box-shadow:0 2px 6px rgba(0,0,0,0.06)}
+.section h3{font-size:15px;color:#1a3a5c;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e8e8e8}
+
+/* Compare */
+.compare-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:14px}
+.trend-up{color:#2d8a4e;font-weight:600}
+.trend-down{color:#c0392b}
+.trend-warn{color:#c0392b;font-weight:700}
+.trend-flat{color:#999}
+
+/* Category stats */
+.cat-store-block{margin-bottom:14px}
+.cat-store-name{font-size:14px;font-weight:600;color:#1a3a5c;margin-bottom:6px}
+.cat-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid #f8f8f8}
+.cat-ok{color:#2d8a4e}
+.cat-off{color:#c0392b;font-weight:600}
+
+/* Footer */
+.footer-guide{background:linear-gradient(135deg,#2d8a4e,#3da55d);color:#fff;border-radius:12px;padding:16px 20px;text-align:center;margin:16px 0;font-size:14px;line-height:1.8}
+.footer-guide .step{display:inline-block;margin:0 4px}
+.footer-guide .arrow{opacity:0.7;margin:0 2px}
+.footer-meta{text-align:center;font-size:11px;color:#aaa;padding:8px}
+
+/* Progress bar */
+.progress-wrap{margin-top:12px;background:#e8e8e8;border-radius:10px;height:8px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,#2d8a4e,#3da55d);border-radius:10px;transition:width 0.3s ease}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>联家超柿出勤监控 (17:30)</h1>
+        <div class="meta">抓取时间：2026-07-31 09:35:23</div>
+        <div class="kpi-row">
+            <div class="kpi"><div class="val">646</div><div class="label">监控SKU</div></div>
+            <div class="kpi"><div class="val">594</div><div class="label">在架</div></div>
+            <div class="kpi"><div class="val">52</div><div class="label">下架</div></div>
+            <div class="kpi"><div class="val" style="color:#ffd666">92.0%</div><div class="label">出勤率</div></div>
+        </div>
+    </div>
+
+    <div class="priority-row">
+        <span class="priority-tag" style="background:#e8f5e9;color:#2d8a4e;border:1px solid #2d8a4e">🟢 联家超柿(双凤店)</span><span class="priority-tag" style="background:#fef3e2;color:#e67e22;border:1px solid #e67e22">🟡 联家超柿(左岸店)</span>
+    </div>
+
+    
+        <div class="store-card" style="border-left:4px solid #2d8a4e">
+            <div class="store-header">
+                <div class="store-title-row">
+                    <span class="store-name">联家超柿(双凤店)</span>
+                    <span class="priority-tag" style="background:#e8f5e9;color:#2d8a4e;border:1px solid #2d8a4e">🟢 正常</span>
+                </div>
+                <div class="store-stats">
+                    <div class="stat-big">
+                        <span class="stat-num" style="color:#2d8a4e">8</span>
+                        <span class="stat-label">待上架</span>
+                    </div>
+                    <div class="stat-small">
+                        <span class="stat-num">95.3%</span>
+                        <span class="stat-label">出勤率</span>
+                    </div>
+                    <div class="stat-small">
+                        <span class="stat-num">307</span>
+                        <span class="stat-label">在架</span>
+                    </div>
+                    <div class="stat-small">
+                        <span class="stat-num">322</span>
+                        <span class="stat-label">监控</span>
+                    </div>
+                </div>
+            </div>
+            <div class="checklist" id="checklist-0">
+                
+            <label class="checklist-item"  data-idx="0">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">人人福嫩豆腐约450-500g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">豆制品</span>
+                        <span class="item-barcode">...2760</span>
+                        <span class="item-ms">月售119</span>
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item"  data-idx="1">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">内脂豆腐350g（盒装）</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">豆制品</span>
+                        <span class="item-barcode">...0015</span>
+                        <span class="item-ms">月售98</span>
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item"  data-idx="2">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">人人福连体酱干250-300g（4片）</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">豆制品</span>
+                        <span class="item-barcode">...2791</span>
+                        <span class="item-ms">月售83</span>
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item"  data-idx="3">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">鲜鸡蛋15枚约750g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">肉禽蛋类</span>
+                        <span class="item-barcode">...0736</span>
+                        <span class="item-ms">月售75</span>
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item"  data-idx="4">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">人人福连体白干250-300g（4片）</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">豆制品</span>
+                        <span class="item-barcode">...2647</span>
+                        <span class="item-ms">月售22</span>
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item" style="display:none" data-idx="5">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">人人福薄油干约200g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">豆制品</span>
+                        <span class="item-barcode">...3549</span>
+                        <span class="item-ms">月售7</span>
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item" style="display:none" data-idx="6">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">香葱饼20-50g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">鲜食/熟食</span>
+                        <span class="item-barcode">...4412</span>
+                        <span class="item-ms">月售5</span>
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item" style="display:none" data-idx="7">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">精品薄千张约150g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">豆制品</span>
+                        <span class="item-barcode">...4478</span>
+                        
+                    </span>
+                </div>
+            </label>
+            </div>
+            
+            <button class="expand-btn" onclick="toggleExpand(this, 8)">
+                查看全部 8 个 →
+            </button>
+            <div class="done-count" id="done-0">已上架 0 / 8 个</div>
+        </div>
+        <div class="store-card" style="border-left:4px solid #e67e22">
+            <div class="store-header">
+                <div class="store-title-row">
+                    <span class="store-name">联家超柿(左岸店)</span>
+                    <span class="priority-tag" style="background:#fef3e2;color:#e67e22;border:1px solid #e67e22">🟡 关注</span>
+                </div>
+                <div class="store-stats">
+                    <div class="stat-big">
+                        <span class="stat-num" style="color:#e67e22">9</span>
+                        <span class="stat-label">待上架</span>
+                    </div>
+                    <div class="stat-small">
+                        <span class="stat-num">88.6%</span>
+                        <span class="stat-label">出勤率</span>
+                    </div>
+                    <div class="stat-small">
+                        <span class="stat-num">287</span>
+                        <span class="stat-label">在架</span>
+                    </div>
+                    <div class="stat-small">
+                        <span class="stat-num">324</span>
+                        <span class="stat-label">监控</span>
+                    </div>
+                </div>
+            </div>
+            <div class="checklist" id="checklist-1">
+                
+            <label class="checklist-item"  data-idx="0">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">人人福千张约200g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">豆制品</span>
+                        <span class="item-barcode">...2746</span>
+                        <span class="item-ms">月售44</span>
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item"  data-idx="1">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">青西红柿450-500g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">蔬菜</span>
+                        <span class="item-barcode">...1608</span>
+                        <span class="item-ms">月售13</span>
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item"  data-idx="2">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">人人福五香皮条干约140g（5片）</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">豆制品</span>
+                        <span class="item-barcode">...3637</span>
+                        <span class="item-ms">月售4</span>
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item"  data-idx="3">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">鹿茸菇约350g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">蔬菜</span>
+                        <span class="item-barcode">...1367</span>
+                        
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item"  data-idx="4">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">桃李汉堡面包220g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">鲜食/熟食</span>
+                        <span class="item-barcode">...0254</span>
+                        
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item" style="display:none" data-idx="5">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">皖南臭干约270g±10</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">豆制品</span>
+                        <span class="item-barcode">...2685</span>
+                        
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item" style="display:none" data-idx="6">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">【超实惠】新鲜牛腱肉约1kg</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">肉禽蛋类</span>
+                        <span class="item-barcode">...0156</span>
+                        
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item" style="display:none" data-idx="7">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">圣农单冻翅根500g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">肉禽蛋类</span>
+                        <span class="item-barcode">...0028</span>
+                        
+                    </span>
+                </div>
+            </label>
+            <label class="checklist-item" style="display:none" data-idx="8">
+                <input type="checkbox" onchange="toggleItem(this)">
+                <div class="item-info">
+                    <span class="item-name">圣农鸡胸肉500g</span>
+                    <span class="item-meta">
+                        <span class="item-cat" style="color:#2d5f8a">肉禽蛋类</span>
+                        <span class="item-barcode">...0035</span>
+                        
+                    </span>
+                </div>
+            </label>
+            </div>
+            
+            <button class="expand-btn" onclick="toggleExpand(this, 9)">
+                查看全部 9 个 →
+            </button>
+            <div class="done-count" id="done-1">已上架 0 / 9 个</div>
+        </div>
+
+    
+
+    <div class="section">
+        <h3>📋 分类目下架统计</h3>
+        
+        <div class="cat-store-block">
+            <div class="cat-store-name">联家超柿(双凤店)（下架8个）</div>
+            <div class="cat-row"><span>蔬菜</span><span class="cat-ok">✅ 全部在架</span></div><div class="cat-row"><span>水果</span><span class="cat-ok">✅ 全部在架</span></div><div class="cat-row"><span>肉禽蛋类</span><span class="cat-off">下架 1 个</span></div><div class="cat-row"><span>水产</span><span class="cat-ok">✅ 全部在架</span></div><div class="cat-row"><span>豆制品</span><span class="cat-off">下架 6 个</span></div><div class="cat-row"><span>鲜食/熟食</span><span class="cat-off">下架 1 个</span></div>
+        </div>
+        <div class="cat-store-block">
+            <div class="cat-store-name">联家超柿(左岸店)（下架9个）</div>
+            <div class="cat-row"><span>蔬菜</span><span class="cat-off">下架 2 个</span></div><div class="cat-row"><span>水果</span><span class="cat-ok">✅ 全部在架</span></div><div class="cat-row"><span>肉禽蛋类</span><span class="cat-off">下架 3 个</span></div><div class="cat-row"><span>水产</span><span class="cat-ok">✅ 全部在架</span></div><div class="cat-row"><span>豆制品</span><span class="cat-off">下架 3 个</span></div><div class="cat-row"><span>鲜食/熟食</span><span class="cat-off">下架 1 个</span></div>
+        </div>
+    </div>
+
+    <div class="footer-guide">
+        <span class="step">📋 看清单</span>
+        <span class="arrow">→</span>
+        <span class="step">☑️ 勾选已完成</span>
+        <span class="arrow">→</span>
+        <span class="step">📊 管理者看趋势</span>
+    </div>
+
+    <div class="footer-meta">联家超柿出勤监控 · 自动生成</div>
+</div>
+
+<script>
+function toggleExpand(btn, total) {
+    var items = btn.parentElement.querySelectorAll('.checklist-item');
+    var expanded = btn.getAttribute('data-expanded') === '1';
+    items.forEach(function(item, i) {
+        if (i >= 5) {
+            item.style.display = expanded ? 'none' : 'flex';
+        }
+    });
+    if (expanded) {
+        btn.textContent = '查看全部 ' + total + ' 个 →';
+        btn.setAttribute('data-expanded', '0');
+    } else {
+        btn.textContent = '收起 ↑';
+        btn.setAttribute('data-expanded', '1');
+    }
+}
+
+function toggleItem(cb) {
+    var label = cb.closest('.checklist-item');
+    if (cb.checked) {
+        label.classList.add('checked');
+    } else {
+        label.classList.remove('checked');
+    }
+    updateDoneCount(label.closest('.store-card'));
+}
+
+function updateDoneCount(card) {
+    var all = card.querySelectorAll('.checklist-item');
+    var checked = card.querySelectorAll('.checklist-item.checked');
+    var doneEl = card.querySelector('.done-count');
+    if (doneEl) {
+        doneEl.textContent = '已上架 ' + checked.length + ' / ' + all.length + ' 个';
+        if (checked.length === all.length && all.length > 0) {
+            doneEl.style.color = '#2d8a4e';
+            doneEl.style.fontWeight = '700';
+        } else {
+            doneEl.style.color = '#7a6a5a';
+            doneEl.style.fontWeight = '500';
+        }
+    }
+    // Update progress bar
+    var bar = card.querySelector('.progress-bar');
+    if (bar && all.length > 0) {
+        bar.style.width = (checked.length / all.length * 100) + '%';
+    }
+}
+</script>
+</body>
+</html>
