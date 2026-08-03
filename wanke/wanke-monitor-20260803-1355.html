@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>万客缘生鲜出勤监控报告</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f0f2f5;
+    color: #333;
+    padding: 24px;
+}
+.container { max-width: 1100px; margin: 0 auto; }
+.header {
+    background: linear-gradient(135deg, #1a73e8, #0d47a1);
+    color: white;
+    padding: 28px 32px;
+    border-radius: 12px 12px 0 0;
+}
+.header h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+.header .time { font-size: 13px; opacity: 0.85; }
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    padding: 24px 32px;
+    background: white;
+    border-bottom: 1px solid #eee;
+}
+.card {
+    text-align: center;
+    padding: 16px 8px;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+.card .value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+.card .label { font-size: 12px; color: #666; }
+.card.good .value { color: #0d8043; }
+.card.warn .value { color: #e37400; }
+.card.bad .value { color: #d93025; }
+.card.info .value { color: #1a73e8; }
+.section {
+    background: white;
+    padding: 24px 32px;
+}
+.section h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1a73e8;
+    display: inline-block;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+th {
+    background: #f1f3f4;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #ddd;
+    white-space: nowrap;
+}
+td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+}
+tr:hover { background: #f8f9fa; }
+.store-name { font-weight: 500; max-width: 260px; }
+.good { color: #0d8043; font-weight: 600; }
+.warn { color: #e37400; font-weight: 600; }
+.bad { color: #d93025; font-weight: 600; }
+tr.total { background: #f1f3f4; font-weight: 600; }
+tr.total td { border-top: 2px solid #ccc; }
+.doc-link {
+    padding: 16px 32px;
+    background: white;
+    border-radius: 0 0 12px 12px;
+    border-top: 1px solid #eee;
+}
+.doc-link a {
+    color: #1a73e8;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+}
+.doc-link a:hover { text-decoration: underline; }
+.footer {
+    text-align: center;
+    padding: 16px;
+    font-size: 12px;
+    color: #999;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>万客缘生鲜出勤监控报告</h1>
+        <div class="time">抓取时间: 2026-08-03 13:54:44 | 报告生成: 2026-08-03 13:55</div>
+    </div>
+
+    <div class="cards">
+        <div class="card info">
+            <div class="value">995</div>
+            <div class="label">监控SKU数</div>
+        </div>
+        <div class="card good">
+            <div class="value">888</div>
+            <div class="label">在架SKU数</div>
+        </div>
+        <div class="card warn">
+            <div class="value">89.2%</div>
+            <div class="label">出勤率</div>
+        </div>
+        <div class="card warn">
+            <div class="value">10.8%</div>
+            <div class="label">未出勤销售占比</div>
+        </div>
+        <div class="card bad">
+            <div class="value">147</div>
+            <div class="label">损失净G (7日估算)</div>
+        </div>
+        <div class="card bad">
+            <div class="value">49</div>
+            <div class="label">有库存未上架</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>门店明细</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>门店</th>
+                    <th>监控SKU数</th>
+                    <th>在架SKU数</th>
+                    <th>出勤率</th>
+                    <th>未出勤销售占比</th>
+                    <th>损失净G (7日)</th>
+                    <th>有库存未上架</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td class="store-name">萬客缘LIFE(金华涵碧紫金城店)</td>
+            <td>496</td>
+            <td>432</td>
+            <td class="warn">87.1%</td>
+            <td>12.9%</td>
+            <td>45</td>
+            <td class="bad">26</td>
+        </tr>
+        <tr>
+            <td class="store-name">T11·萬客缘生鲜超市(世贸店)</td>
+            <td>499</td>
+            <td>456</td>
+            <td class="good">91.4%</td>
+            <td>8.6%</td>
+            <td>102</td>
+            <td class="bad">23</td>
+        </tr>
+                <tr class="total">
+                    <td>合计</td>
+                    <td>995</td>
+                    <td>888</td>
+                    <td class="warn">89.2%</td>
+                    <td>10.8%</td>
+                    <td>147</td>
+                    <td>49</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    
+
+    <div class="footer">
+        数据来源: 昆仑API (月售TOP500/店) | 损失净G = 下架商品月售/30*7 估算
+    </div>
+</div>
+</body>
+</html>
