@@ -1308,7 +1308,7 @@ createApp({
     // 成山农场门店级每日订单汇总（2026.8.8-9.16）
     // FBI看板1796001 门店级每日订单 (2026.8.8-9.16)
     let storeDailyData = {
-      '龙湖天街店': {'2026-08-08':377,'2026-08-09':380,'2026-08-10':354,'2026-08-11':251,'2026-08-12':267,'2026-08-13':315,'2026-08-14':294,'2026-08-15':389,'2026-08-16':352,'2026-08-17':283,'2026-08-18':347,'2026-08-19':281,'2026-08-20':317,'2026-08-21':343,'2026-08-22':465,'2026-08-23':417,'2026-08-24':348,'2026-08-25':370,'2026-08-26':378,'2026-08-27':406,'2026-08-28':398,'2026-08-29':393,'2026-08-30':414,'2026-08-31':347,'2026-09-01':378,'2026-09-02':333,'2026-09-03':335,'2026-09-04':303,'2026-09-05':392,'2026-09-06':412,'2026-09-07':324,'2026-09-08':365,'2026-09-09':414,'2026-09-10':365,'2026-09-11':329,'2026-09-12':376,'2026-09-13':368,'2026-09-14':311,'2026-09-15':306,'2026-09-16': 306},
+      '龙湖天街店': {'2026-08-08':377,'2026-08-09':380,'2026-08-10':354,'2026-08-11':251,'2026-08-12':267,'2026-08-13':315,'2026-08-14':294,'2026-08-15':389,'2026-08-16':352,'2026-08-17':283,'2026-08-18':347,'2026-08-19':281,'2026-08-20':317,'2026-08-21':343,'2026-08-22':465,'2026-08-23':417,'2026-08-24':348,'2026-08-25':370,'2026-08-26':378,'2026-08-27':406,'2026-08-28':398,'2026-08-29':393,'2026-08-30':414,'2026-08-31':347,'2026-09-01':378,'2026-09-02':333,'2026-09-03':335,'2026-09-04':303,'2026-09-05':392,'2026-09-06':412,'2026-09-07':324,'2026-09-08':365,'2026-09-09':414,'2026-09-10':365,'2026-09-11':329,'2026-09-12':376,'2026-09-13':368,'2026-09-14':311,'2026-09-15':306,'2026-09-16': 306, '2026-09-17': 306},
     };
     // 成山农场品牌级汇总分布（全门店合计）
     let brandDistData = {
@@ -1334,7 +1334,7 @@ createApp({
     };
     // FBI看板1796001 品牌级每日订单 (2026.8.8-9.13)
     let brandDailyData = {
-      '成山农场': {'2026-08-08':1386,'2026-08-09':1424,'2026-08-10':1261,'2026-08-11':1080,'2026-08-12':1186,'2026-08-13':1175,'2026-08-14':1182,'2026-08-15':1522,'2026-08-16':1546,'2026-08-17':1371,'2026-08-18':1469,'2026-08-19':1319,'2026-08-20':1312,'2026-08-21':1506,'2026-08-22':1867,'2026-08-23':1851,'2026-08-24':1525,'2026-08-25':1582,'2026-08-26':1517,'2026-08-27':1582,'2026-08-28':1418,'2026-08-29':1574,'2026-08-30':1762,'2026-08-31':1260,'2026-09-01':1395,'2026-09-02':1367,'2026-09-03':1361,'2026-09-04':1278,'2026-09-05':1692,'2026-09-06':1800,'2026-09-07':658,'2026-09-08':767,'2026-09-09':956,'2026-09-10':774,'2026-09-11':649,'2026-09-12':843,'2026-09-13':911,'2026-09-14':1368,'2026-09-15':1405,'2026-09-16':1405},
+      '成山农场': {'2026-08-08':1386,'2026-08-09':1424,'2026-08-10':1261,'2026-08-11':1080,'2026-08-12':1186,'2026-08-13':1175,'2026-08-14':1182,'2026-08-15':1522,'2026-08-16':1546,'2026-08-17':1371,'2026-08-18':1469,'2026-08-19':1319,'2026-08-20':1312,'2026-08-21':1506,'2026-08-22':1867,'2026-08-23':1851,'2026-08-24':1525,'2026-08-25':1582,'2026-08-26':1517,'2026-08-27':1582,'2026-08-28':1418,'2026-08-29':1574,'2026-08-30':1762,'2026-08-31':1260,'2026-09-01':1395,'2026-09-02':1367,'2026-09-03':1361,'2026-09-04':1278,'2026-09-05':1692,'2026-09-06':1800,'2026-09-07':658,'2026-09-08':767,'2026-09-09':956,'2026-09-10':774,'2026-09-11':649,'2026-09-12':843,'2026-09-13':911,'2026-09-14':1368,'2026-09-15':1405,'2026-09-16':1405, '2026-09-17': 1405},
     };
 
     // FBI DataMate 各门店 单均仓T (2026.9.7-9.16) 单位：分钟
@@ -1344,7 +1344,7 @@ createApp({
         '2026-09-10': 20.18, '2026-09-11': 14.45, '2026-09-12': 19.07,
         '2026-09-13': 36.65, '2026-09-14': 9.99, '2026-09-15': 12.39,
         '2026-09-16': 9.31,
-      },
+      , '2026-09-17': 9.31},
     };
 
     // Open-Meteo 天气预报 (西安 34.26,108.94) 更新于 2026-09-17
@@ -1358,6 +1358,11 @@ createApp({
         {date:'2026-09-22',desc:'阴',temp:'19~24°C'},
         {date:'2026-09-23',desc:'微毛雨',temp:'18~24°C'},
       ],
+    };
+
+    // 已保存的预估订单数据（由推送脚本自动嵌入，用户通过"保存预估"按钮下载JSON文件维护）
+    let savedForecastsData = {
+      '龙湖天街店': {}
     };
 
     const brands = ref([
@@ -1767,10 +1772,13 @@ createApp({
       const now = new Date();
       const timeStr = formatDateLocal(now) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
       
+      const currentStore = selectedStore.value?.name || '';
+      const currentBrand = brands.value[selectedBrandIdx.value]?.name || '';
+      
       const data = {
         saveDate: timeStr,
-        brand: brands.value[selectedBrandIdx.value]?.name || '',
-        store: selectedStore.value?.name || '',
+        brand: currentBrand,
+        store: currentStore,
         forecasts: dailyForecasts.value.map(d => ({ date: d.date, forecast: d.forecast || 0 })),
       };
       
@@ -1791,7 +1799,22 @@ createApp({
         savedForecastsMap = {};
         dailyForecasts.value.forEach(d => { savedForecastsMap[d.date] = d.forecast || 0; });
         
-        alert('预估已保存！');
+        // 同时下载 JSON 文件（供推送脚本读取并嵌入 HTML）
+        const forecastMap = {};
+        dailyForecasts.value.forEach(d => { forecastMap[d.date] = d.forecast || 0; });
+        const exportData = { [currentStore]: forecastMap };
+        const jsonStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `forecasts_${currentStore}_${formatDateLocal(now)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert('预估已保存！JSON文件已下载，请放到推送脚本同目录下。');
       } catch(e) { 
         console.error('保存失败:', e);
         alert('保存失败，请重试');
@@ -1809,29 +1832,40 @@ createApp({
 
     function loadSavedForecasts() {
       try {
+        const currentStore = selectedStore.value?.name || '';
+        const currentBrand = brands.value[selectedBrandIdx.value]?.name || '';
+        // 优先从 localStorage 加载（用户刚保存的）
         const raw = localStorage.getItem(storagePrefix.value + 'orderForecast_save');
         if (raw) {
           const data = JSON.parse(raw);
-          const currentStore = selectedStore.value?.name || '';
-          const currentBrand = brands.value[selectedBrandIdx.value]?.name || '';
           // 门店/品牌不匹配时跳过加载，避免跨门店数据污染
           if (data.store !== currentStore || data.brand !== currentBrand) {
             console.log('localStorage数据门店不匹配，跳过加载（已保存:', data.brand + '/' + data.store, '当前:', currentBrand + '/' + currentStore + '）');
-            return;
+          } else {
+            lastSaveTime.value = data.saveDate || '';
+            if (data.forecasts) {
+              data.forecasts.forEach(f => { savedForecastsMap[f.date] = f.forecast || 0; });
+            }
+            if (data.forecasts && dailyForecasts.value.length) {
+              const savedMap = {};
+              data.forecasts.forEach(f => { savedMap[f.date] = f.forecast; });
+              dailyForecasts.value.forEach(d => {
+                if (savedMap[d.date] !== undefined) d.forecast = savedMap[d.date];
+              });
+            }
+            return; // localStorage 有数据就直接返回
           }
-          lastSaveTime.value = data.saveDate || '';
-          // 保存所有已保存的预估值到全局 map
-          if (data.forecasts) {
-            data.forecasts.forEach(f => { savedForecastsMap[f.date] = f.forecast || 0; });
-          }
-          // 恢复到当前数组
-          if (data.forecasts && dailyForecasts.value.length) {
-            const savedMap = {};
-            data.forecasts.forEach(f => { savedMap[f.date] = f.forecast; });
-            dailyForecasts.value.forEach(d => {
-              if (savedMap[d.date] !== undefined) d.forecast = savedMap[d.date];
-            });
-          }
+        }
+        // localStorage 没有或门店不匹配时，从嵌入的 savedForecastsData 加载
+        if (currentStore && savedForecastsData[currentStore]) {
+          const embedded = savedForecastsData[currentStore];
+          dailyForecasts.value.forEach(d => {
+            if (embedded[d.date] !== undefined) {
+              d.forecast = embedded[d.date];
+              savedForecastsMap[d.date] = embedded[d.date];
+            }
+          });
+          console.log('从嵌入数据加载了', Object.keys(embedded).length, '条预估');
         }
         const logRaw = localStorage.getItem(storagePrefix.value + 'orderForecast_log');
         if (logRaw) changeLog.value = JSON.parse(logRaw);
