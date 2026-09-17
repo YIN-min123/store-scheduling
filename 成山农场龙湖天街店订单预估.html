@@ -1,0 +1,3528 @@
+<!DOCTYPE html>
+<!-- 美学定调：F. 暖色商务 | Display: DM Serif Display | Body: Plus Jakarta Sans | 主色: #C2410C (赤陶橙) | 强调: #CA8A04 (暖金) -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>订单预估与排班工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #FDFBF7;
+      --color-surface: #FFFFFF;
+      --color-ink: #1A1815;
+      --color-muted: #6B6760;
+      --color-primary: #C2410C;
+      --color-accent: #CA8A04;
+      --color-line: #E8E2D8;
+      --color-red: #DC2626;
+      --color-green: #16A34A;
+      --color-yellow: #CA8A04;
+      --color-blue: #2563EB;
+      /* 板块主题色 */
+      --theme-weather: #0EA5E9;
+      --theme-weather-soft: #E0F2FE;
+      --theme-weather-line: #BAE6FD;
+      --theme-order: #F59E0B;
+      --theme-order-soft: #FEF3C7;
+      --theme-order-line: #FDE68A;
+      --theme-staff: #10B981;
+      --theme-staff-soft: #D1FAE5;
+      --theme-staff-line: #A7F3D0;
+      --font-display: 'DM Serif Display', Georgia, 'Songti SC', serif;
+      --font-body: 'Plus Jakarta Sans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: var(--font-body);
+      color: var(--color-ink);
+      background-color: var(--color-bg);
+      background-image:
+        radial-gradient(circle at 15% 5%, rgba(14, 165, 233, 0.06), transparent 40%),
+        radial-gradient(circle at 85% 40%, rgba(245, 158, 11, 0.05), transparent 40%),
+        radial-gradient(circle at 50% 95%, rgba(16, 185, 129, 0.05), transparent 40%);
+      margin: 0;
+      min-height: 100vh;
+      font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
+    .font-mono { font-family: var(--font-mono); font-feature-settings: 'tnum'; }
+    [v-cloak] { display: none; }
+
+    /* 板块卡片：主题色边框+柔和阴影 */
+    .section-card {
+      background: var(--color-surface);
+      border-radius: 20px;
+      box-shadow: 0 1px 2px rgba(26, 24, 21, 0.04), 0 8px 24px -6px rgba(26, 24, 21, 0.06);
+      border: 1px solid var(--color-line);
+      overflow: hidden;
+      position: relative;
+    }
+    .section-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--section-accent, var(--color-primary));
+    }
+    .section-weather { --section-accent: var(--theme-weather); --section-soft: var(--theme-weather-soft); --section-line: var(--theme-weather-line); }
+    .section-order { --section-accent: var(--theme-order); --section-soft: var(--theme-order-soft); --section-line: var(--theme-order-line); }
+    .section-staff { --section-accent: var(--theme-staff); --section-soft: var(--theme-staff-soft); --section-line: var(--theme-staff-line); }
+
+    /* Section header with icon */
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      padding-bottom: 14px; margin-bottom: 20px;
+      border-bottom: 1px solid var(--section-line, var(--color-line));
+    }
+    .section-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--section-soft, rgba(194,65,12,0.08));
+      color: var(--section-accent, var(--color-primary));
+      font-size: 18px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      color: var(--color-ink);
+      margin: 0;
+      letter-spacing: -0.015em;
+    }
+    .section-subtitle {
+      font-size: 12px;
+      color: var(--color-muted);
+      margin-top: 2px;
+      letter-spacing: 0.02em;
+    }
+
+    /* Subsection header (h3) */
+    .sub-header {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600;
+      color: var(--color-ink);
+      padding: 4px 10px 4px 8px;
+      background: var(--section-soft, rgba(194,65,12,0.06));
+      border-left: 3px solid var(--section-accent, var(--color-primary));
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 12px;
+    }
+
+    .shift-checkbox {
+      width: 22px; height: 22px;
+      border: 2px solid var(--color-line);
+      border-radius: 5px;
+      cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+      transition: all 0.15s;
+      background: #F5F3EF;
+    }
+    .shift-checkbox:hover { border-color: var(--theme-staff); }
+    .shift-checkbox:checked {
+      background: var(--theme-staff);
+      border-color: var(--theme-staff);
+    }
+    .shift-checkbox:checked::after {
+      content: ''; display: block;
+      width: 6px; height: 11px;
+      border: solid white; border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+      margin: 2px auto 0;
+    }
+    .sticky-col {
+      position: sticky; left: 0; z-index: 2;
+      background: var(--color-surface);
+    }
+    .sticky-head {
+      position: sticky; top: 0; z-index: 1;
+      background: var(--color-surface);
+    }
+    .sticky-corner {
+      position: sticky; top: 0; left: 0; z-index: 3;
+      background: var(--color-surface);
+    }
+    .scroll-table { overflow: auto; max-height: 600px; }
+    .scroll-x { overflow-x: auto; }
+    input[type="number"] {
+      font-family: var(--font-mono);
+      text-align: right;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+    .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+    .fade-enter-from, .fade-leave-to { opacity: 0; }
+    .weather-card { transition: all 0.2s; }
+    .weather-card:hover { transform: translateY(-2px); }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(26,24,21,0.45);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .modal-box {
+      background: var(--color-surface);
+      border-radius: 20px;
+      box-shadow: 0 24px 48px -12px rgba(26,24,21,0.25);
+      max-width: 860px; width: 100%;
+      max-height: 85vh; overflow-y: auto;
+      padding: 24px;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 32px; height: 32px;
+      border-radius: 50%; border: none;
+      background: rgba(232,226,216,0.6);
+      color: var(--color-muted);
+      cursor: pointer; font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .modal-close:hover { background: rgba(232,226,216,1); color: var(--color-ink); }
+
+    /* Temp worker red styling */
+    .shift-checkbox-temp:checked {
+      background: var(--color-red) !important;
+      border-color: var(--color-red) !important;
+    }
+    .temp-row { background: rgba(220,38,38,0.02) !important; }
+    .temp-badge {
+      display: inline-flex; align-items: center;
+      padding: 1px 6px; border-radius: 4px;
+      font-size: 10px; font-weight: 600;
+      background: rgba(220,38,38,0.1);
+      color: var(--color-red);
+      letter-spacing: 0.02em;
+    }
+
+    /* Efficiency badge */
+    .eff-badge {
+      display: inline-flex; align-items: center; gap: 2px;
+      padding: 1px 6px; border-radius: 4px;
+      font-size: 10px; font-weight: 600;
+    }
+    .eff-3 { background: rgba(22,163,74,0.1); color: var(--color-green); }
+    .eff-2 { background: rgba(202,138,4,0.1); color: var(--color-yellow); }
+    .eff-1 { background: rgba(220,38,38,0.1); color: var(--color-red); }
+
+    /* Pool employee green name tag */
+    .pool-name { color: var(--theme-staff); font-weight: 600; }
+
+    /* Employee pool slot checkbox in modal */
+    .pool-slot-checkbox {
+      width: 18px; height: 18px;
+      border: 2px solid var(--color-line);
+      border-radius: 4px;
+      cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+      transition: all 0.15s;
+      background: #F5F3EF;
+      vertical-align: middle;
+    }
+    .pool-slot-checkbox:hover { border-color: var(--theme-staff); }
+    .pool-slot-checkbox:checked {
+      background: var(--theme-staff);
+      border-color: var(--theme-staff);
+    }
+    .pool-slot-checkbox:checked::after {
+      content: ''; display: block;
+      width: 5px; height: 9px;
+      border: solid white; border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+      margin: 1px auto 0;
+    }
+
+    /* KPI card style */
+    .kpi-card {
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, var(--color-surface) 0%, rgba(245,243,239,0.6) 100%);
+      border: 1px solid var(--color-line);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .kpi-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px -4px rgba(26,24,21,0.08); }
+    .kpi-label { font-size: 11px; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+    .kpi-value { font-family: var(--font-mono); font-size: 22px; font-weight: 700; margin-top: 4px; letter-spacing: -0.02em; }
+
+    /* Header bar */
+    .app-header {
+      background: linear-gradient(135deg, rgba(255,251,245,0.95) 0%, rgba(253,246,235,0.95) 100%);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-line);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    }
+    .app-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      color: var(--color-primary);
+      letter-spacing: -0.02em;
+    }
+    .app-title-sub {
+      font-size: 11px;
+      color: var(--color-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+<div id="app" v-cloak>
+
+  <!-- ==================== Header ==================== -->
+  <header class="sticky top-0 z-50 app-header">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-3">
+      <div class="mr-6">
+        <h1 class="app-title">订单预估与排班</h1>
+        <div class="app-title-sub">Forecast &amp; Scheduling</div>
+        <div class="text-[10px] mt-0.5" style="color: var(--color-muted);">v4.3</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-medium uppercase tracking-wider" style="color: var(--color-muted);">品牌</label>
+        <select v-model="selectedBrandIdx" @change="onBrandChange"
+          class="px-3 py-1.5 rounded-lg border text-sm font-medium shadow-sm"
+          style="border-color: var(--color-line); background: var(--color-surface);">
+          <option v-for="(brand, i) in brands" :key="i" :value="i">{{ brand.name }}</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-xs font-medium uppercase tracking-wider" style="color: var(--color-muted);">门店</label>
+        <select v-model="selectedStoreIdx" @change="onStoreChange"
+          class="px-3 py-1.5 rounded-lg border text-sm font-medium shadow-sm"
+          style="border-color: var(--color-line); background: var(--color-surface);">
+          <option v-for="(store, i) in currentBrandStores" :key="i" :value="i">{{ store.name }}</option>
+        </select>
+      </div>
+      <div v-if="selectedStore" class="text-xs flex items-center gap-2" style="color: var(--color-muted);">
+        <span>{{ selectedStore.city }}</span>
+        <span>|</span>
+        <span>{{ selectedStore.businessStart }}-{{ selectedStore.businessEnd }}</span>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <button @click="showSettings = !showSettings"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-orange-50"
+          style="border-color: var(--color-line);">
+          门店设置
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== Settings Panel ==================== -->
+  <transition name="fade">
+    <div v-if="showSettings" class="max-w-7xl mx-auto px-4 sm:px-6 mt-3">
+      <div class="section-card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-display" style="color: var(--color-ink);">门店设置</h2>
+          <button @click="showSettings = false" class="text-sm" style="color: var(--color-muted);">收起</button>
+        </div>
+        <div class="space-y-4">
+          <div v-for="(brand, bi) in brands" :key="bi" class="border rounded-lg p-4" style="border-color: var(--color-line);">
+            <div class="flex items-center gap-3 mb-3">
+              <input v-model="brand.name" class="font-semibold text-sm px-2 py-1 rounded border flex-1 max-w-xs"
+                style="border-color: var(--color-line);">
+              <button @click="addStore(bi)" class="text-sm px-2 py-1 rounded" style="color: var(--color-primary);">+ 门店</button>
+              <button @click="removeBrand(bi)" class="text-sm px-2 py-1 rounded text-red-600">删除品牌</button>
+            </div>
+            <div v-for="(store, si) in brand.stores" :key="si" class="flex flex-wrap items-center gap-2 mb-2 pl-4">
+              <input v-model="store.name" placeholder="门店名称"
+                class="text-sm px-2 py-1 rounded border w-40" style="border-color: var(--color-line);">
+              <select v-model="store.city"
+                class="text-sm px-2 py-1 rounded border" style="border-color: var(--color-line);">
+                <option value="">选择城市</option>
+                <option v-for="city in Object.keys(cityCoords)" :key="city" :value="city">{{ city }}</option>
+              </select>
+              <div class="flex items-center gap-1">
+                <input v-model="store.businessStart" type="time" class="text-sm px-2 py-1 rounded border"
+                  style="border-color: var(--color-line);">
+                <span class="text-xs" style="color: var(--color-muted);">至</span>
+                <input v-model="store.businessEnd" type="time" class="text-sm px-2 py-1 rounded border"
+                  style="border-color: var(--color-line);">
+              </div>
+              <button @click="removeStore(bi, si)" class="text-xs text-red-600 ml-2">删除</button>
+            </div>
+          </div>
+          <button @click="addBrand" class="px-3 py-1.5 rounded-lg text-sm font-medium border"
+            style="border-color: var(--color-line); color: var(--color-primary);">+ 添加品牌</button>
+        </div>
+      </div>
+    </div>
+  </transition>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- ==================== Section 1: 天气预报 ==================== -->
+    <section class="section-card section-weather p-5 sm:p-6">
+      <div class="section-header">
+        <div class="section-icon">☁</div>
+        <div class="flex-1">
+          <h2 class="section-title">天气预报</h2>
+          <div class="section-subtitle">WEATHER FORECAST · 近7天</div>
+        </div>
+        <div v-if="weatherLoading" class="text-sm" style="color: var(--color-muted);">加载中...</div>
+        <div v-if="weatherError" class="text-sm" style="color: var(--color-red);">{{ weatherError }}</div>
+      </div>
+
+      <!-- 近7天预报卡片（当日+未来6天，不联动日期选择） -->
+      <div v-if="dailyWeather.length" class="flex gap-3 overflow-x-auto pb-2 scroll-x justify-center">
+        <div v-for="day in dailyWeather" :key="day.date"
+          class="weather-card flex-shrink-0 w-28 sm:w-32 p-3 rounded-xl border-2"
+          style="border-color: var(--color-line); background: var(--color-surface);">
+          <div class="text-center">
+            <div class="text-xs font-semibold font-mono">{{ day.date.slice(5) }}</div>
+            <div class="text-xs" style="color: var(--color-muted);">{{ day.dayOfWeek }}</div>
+            <div class="my-2">
+              <span class="badge"
+                :style="{ background: weatherInfo(day.weatherCode).bg, color: weatherInfo(day.weatherCode).color }">
+                {{ weatherInfo(day.weatherCode).label }}
+              </span>
+            </div>
+            <div class="flex items-center justify-center gap-1.5 text-sm">
+              <span class="font-semibold font-mono" style="color: var(--theme-weather);">{{ Math.round(day.tempMax) }}°</span>
+              <span class="font-mono" style="color: var(--color-muted);">{{ Math.round(day.tempMin) }}°</span>
+            </div>
+            <div class="text-xs font-mono mt-1" style="color: var(--color-blue);">{{ day.precipProb }}%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 当日时段天气 -->
+      <div v-if="hourlyWeather.length" class="mt-5">
+        <div class="flex items-center justify-center gap-2 mb-3">
+          <h3 class="text-sm font-semibold">当日时段天气</h3>
+          <span class="text-xs font-mono" style="color: var(--color-muted);">{{ selectedDate }}</span>
+        </div>
+        <div style="position: relative; height: 280px;">
+          <canvas id="weatherChart"></canvas>
+        </div>
+        <div class="mt-3 flex gap-2 overflow-x-auto pb-2 justify-center">
+          <div v-for="hour in hourlyWeather" :key="hour.hour"
+            class="flex-shrink-0 w-16 text-center p-2 rounded-lg" style="background: rgba(232,226,216,0.3);">
+            <div class="text-xs font-mono" style="color: var(--color-muted);">{{ hour.hour.slice(0,5) }}</div>
+            <div class="text-xs my-1">
+              <span class="badge text-[10px]"
+                :style="{ background: weatherInfo(hour.weatherCode).bg, color: weatherInfo(hour.weatherCode).color }">
+                {{ weatherInfo(hour.weatherCode).label }}
+              </span>
+            </div>
+            <div class="text-sm font-mono font-semibold">{{ Math.round(hour.temp) }}°</div>
+            <div class="text-[10px] font-mono" style="color: var(--color-blue);">{{ hour.precipProb }}%</div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="!dailyWeather.length && !weatherLoading" class="text-center py-8 text-sm" style="color: var(--color-muted);">
+        请选择门店查看天气预报
+      </div>
+    </section>
+
+    <!-- ==================== Section 2: 订单预估 ==================== -->
+    <section class="section-card section-order p-5 sm:p-6">
+      <div class="section-header">
+        <div class="section-icon">¥</div>
+        <div class="flex-1">
+          <h2 class="section-title">订单预估</h2>
+          <div class="section-subtitle">ORDER FORECAST · 天维度 &amp; 时段维度</div>
+        </div>
+      </div>
+
+      <!-- 2A: 天订单预估 -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 class="sub-header">天订单预估</h3>
+          <div class="flex items-center gap-2 flex-wrap">
+            <label class="text-xs" style="color: var(--color-muted);">预估日期范围</label>
+            <input type="date" v-model="forecastStartDate" @change="generateDailyForecasts"
+              class="text-xs px-2 py-1 rounded border font-mono" style="border-color: var(--color-line);">
+            <span class="text-xs" style="color: var(--color-muted);">至</span>
+            <input type="date" v-model="forecastEndDate" @change="generateDailyForecasts"
+              class="text-xs px-2 py-1 rounded border font-mono" style="border-color: var(--color-line);">
+          </div>
+        </div>
+
+        <div v-if="dailyForecasts.length" class="scroll-x">
+          <table class="text-sm" style="border-collapse: separate; border-spacing: 0;">
+            <thead>
+              <tr>
+                <th class="py-2 px-3 text-left font-semibold whitespace-nowrap" style="border-bottom: 2px solid var(--color-line); min-width: 90px;">指标 / 日期</th>
+                <th v-for="d in dailyForecasts" :key="'dh'+d.date"
+                  @click="selectedDate = d.date"
+                  class="cursor-pointer px-2 py-2 text-center whitespace-nowrap"
+                  :class="selectedDate === d.date ? 'shadow-[inset_0_-2px_0_var(--theme-order)]' : ''"
+                  :style="selectedDate === d.date ? 'background: var(--theme-order-soft); min-width: 72px;' : 'min-width: 72px; border-bottom: 2px solid var(--color-line);'"
+                  style="min-width: 72px; border-bottom: 2px solid var(--color-line);">
+                  <div class="text-xs font-semibold font-mono" :style="selectedDate === d.date ? 'color: var(--theme-order);' : 'color: var(--color-ink);'">{{ d.date.slice(5) }}</div>
+                  <div class="text-[10px]" style="color: var(--color-muted);">{{ d.dayOfWeek }}</div>
+                </th>
+                <th class="py-2 px-3 text-center font-semibold whitespace-nowrap" style="border-bottom: 2px solid var(--color-line); color: var(--theme-order);">合计</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Row 1: 上周同期天气 -->
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="py-2 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted);">
+                  <span class="inline-flex items-center gap-1">上周同期天气<span @click="openAnnotation('上周同期天气')" class="cursor-pointer text-[10px] opacity-50 hover:opacity-100" style="color: var(--color-muted);" title="查看口径">ⓘ</span></span>
+                </td>
+                <td v-for="d in dailyForecasts" :key="'wlw'+d.date"
+                  class="text-center px-2 py-2 text-xs"
+                  :style="{ background: selectedDate === d.date ? 'var(--theme-order-soft)' : 'transparent' }">
+                  <template v-if="getWeatherForDate(getLastWeekDateStr(d.date))">
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px;vertical-align:middle;"
+                      :style="{ background: weatherInfo(getWeatherForDate(getLastWeekDateStr(d.date)).code).color }"></span>
+                    <span :style="{ color: weatherInfo(getWeatherForDate(getLastWeekDateStr(d.date)).code).color }">{{ weatherInfo(getWeatherForDate(getLastWeekDateStr(d.date)).code).label }}</span>
+                    <span style="color: var(--color-muted); margin-left: 2px;">{{ Math.round(getWeatherForDate(getLastWeekDateStr(d.date)).max) }}°/{{ Math.round(getWeatherForDate(getLastWeekDateStr(d.date)).min) }}°</span>
+                  </template>
+                  <span v-else style="color: var(--color-muted);">—</span>
+                </td>
+                <td></td>
+              </tr>
+              <!-- Row 2: 当日天气 -->
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="py-2 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted);">
+                  <span class="inline-flex items-center gap-1">当日天气<span @click="openAnnotation('当日天气')" class="cursor-pointer text-[10px] opacity-50 hover:opacity-100" style="color: var(--color-muted);" title="查看口径">ⓘ</span></span>
+                </td>
+                <td v-for="d in dailyForecasts" :key="'wt'+d.date"
+                  class="text-center px-2 py-2 text-xs"
+                  :style="{ background: selectedDate === d.date ? 'var(--theme-order-soft)' : 'transparent' }">
+                  <template v-if="getWeatherForDate(d.date)">
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px;vertical-align:middle;"
+                      :style="{ background: weatherInfo(getWeatherForDate(d.date).code).color }"></span>
+                    <span :style="{ color: weatherInfo(getWeatherForDate(d.date).code).color }">{{ weatherInfo(getWeatherForDate(d.date).code).label }}</span>
+                    <span style="color: var(--color-muted); margin-left: 2px;">{{ Math.round(getWeatherForDate(d.date).max) }}°/{{ Math.round(getWeatherForDate(d.date).min) }}°</span>
+                  </template>
+                  <span v-else style="color: var(--color-muted);">—</span>
+                </td>
+                <td></td>
+              </tr>
+              <!-- Row 3: 上周同期实际 -->
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="py-2 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted);">
+                  <span class="inline-flex items-center gap-1">上周同期实际<span @click="openAnnotation('上周同期实际')" class="cursor-pointer text-[10px] opacity-50 hover:opacity-100" style="color: var(--color-muted);" title="查看口径">ⓘ</span></span>
+                </td>
+                <td v-for="d in dailyForecasts" :key="'lw'+d.date"
+                  class="text-center px-2 py-2 font-mono text-xs"
+                  :style="selectedDate === d.date ? 'background: var(--theme-order-soft); color: var(--color-muted);' : 'color: var(--color-muted);'">
+                  {{ d.lastWeekActual !== null ? d.lastWeekActual : '—' }}
+                </td>
+                <td class="text-center px-3 py-2 font-mono font-semibold text-xs" style="color: var(--color-muted);">{{ totalLastWeekActual }}</td>
+              </tr>
+              <!-- Row 2: 实际订单（次日更新） -->
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="py-2 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted);">
+                  <span class="inline-flex items-center gap-1">实际订单<span @click="openAnnotation('实际订单')" class="cursor-pointer text-[10px] opacity-50 hover:opacity-100" style="color: var(--color-muted);" title="查看口径">ⓘ</span></span>
+                </td>
+                <td v-for="d in dailyForecasts" :key="'ao'+d.date"
+                  class="text-center px-2 py-2 font-mono text-xs"
+                  :style="{ color: d.actualOrders ? 'var(--color-ink)' : 'var(--color-muted)', background: selectedDate === d.date ? 'var(--theme-order-soft)' : 'transparent' }">
+                  {{ d.actualOrders !== null ? d.actualOrders : '—' }}
+                </td>
+                <td class="text-center px-3 py-2 font-mono font-semibold text-xs" style="color: var(--color-muted);">{{ totalActualOrders }}</td>
+              </tr>
+              <!-- Row 3: 系统预估 -->
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="py-2 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted);">
+                  <span class="inline-flex items-center gap-1">系统预估<span @click="openAnnotation('系统预估')" class="cursor-pointer text-[10px] opacity-50 hover:opacity-100" style="color: var(--color-muted);" title="查看口径">ⓘ</span></span>
+                </td>
+                <td v-for="d in dailyForecasts" :key="'sf'+d.date"
+                  class="text-center px-2 py-2 font-mono text-xs"
+                  :style="selectedDate === d.date ? 'background: var(--theme-order-soft); color: var(--color-muted);' : 'color: var(--color-muted);'">
+                  {{ d.systemForecast !== null ? d.systemForecast : '—' }}
+                </td>
+                <td class="text-center px-3 py-2 font-mono font-semibold text-xs" style="color: var(--color-muted);">{{ totalSystemForecast }}</td>
+              </tr>
+              <!-- Row 4: 预估订单（可编辑） -->
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="py-2 px-3 font-semibold text-xs whitespace-nowrap">
+                  <span class="inline-flex items-center gap-1">预估订单<span @click="openAnnotation('预估订单')" class="cursor-pointer text-[10px] opacity-50 hover:opacity-100" style="color: var(--color-muted);" title="查看口径">ⓘ</span></span>
+                </td>
+                <td v-for="d in dailyForecasts" :key="'fc'+d.date"
+                  class="text-center px-2 py-2"
+                  :style="selectedDate === d.date ? 'background: var(--theme-order-soft);' : ''">
+                  <input type="number" v-model.number="d.forecast" min="0"
+                    class="w-16 px-1 py-1 rounded border text-center font-mono text-sm"
+                    style="border-color: var(--color-line);"
+                    @click.stop>
+                </td>
+                <td class="text-center px-3 py-2 font-mono font-semibold text-sm" style="color: var(--theme-order);">{{ totalForecast }}</td>
+              </tr>
+              <!-- Row 5: 环比（今日预估/昨日实际） -->
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="py-2 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted);">
+                  <span class="inline-flex items-center gap-1">环比<span @click="openAnnotation('环比')" class="cursor-pointer text-[10px] opacity-50 hover:opacity-100" style="color: var(--color-muted);" title="查看口径">ⓘ</span></span>
+                </td>
+                <td v-for="d in dailyForecasts" :key="'dod'+d.date"
+                  class="text-center px-2 py-2 font-mono text-xs"
+                  :style="{ color: getDodColor(d), background: selectedDate === d.date ? 'var(--theme-order-soft)' : 'transparent' }">
+                  {{ formatDod(d) }}
+                </td>
+                <td></td>
+              </tr>
+              <!-- Row 6: 同比（今日预估/上周同期） -->
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="py-2 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted);">
+                  <span class="inline-flex items-center gap-1">同比<span @click="openAnnotation('同比')" class="cursor-pointer text-[10px] opacity-50 hover:opacity-100" style="color: var(--color-muted);" title="查看口径">ⓘ</span></span>
+                </td>
+                <td v-for="d in dailyForecasts" :key="'yoy'+d.date"
+                  class="text-center px-2 py-2 font-mono text-xs"
+                  :style="{ color: getYoyColor(d), background: selectedDate === d.date ? 'var(--theme-order-soft)' : 'transparent' }">
+                  {{ formatYoy(d) }}
+                </td>
+                <td></td>
+              </tr>
+              <!-- Row 7: 预估准确率（次日更新） -->
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="py-2 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted);">
+                  <span class="inline-flex items-center gap-1">预估准确率<span @click="openAnnotation('预估准确率')" class="cursor-pointer text-[10px] opacity-50 hover:opacity-100" style="color: var(--color-muted);" title="查看口径">ⓘ</span></span>
+                </td>
+                <td v-for="d in dailyForecasts" :key="'ac'+d.date"
+                  class="text-center px-2 py-2 font-mono text-xs font-semibold"
+                  :style="{ color: getAccuracyColor(getForecastAccuracy(d)), background: selectedDate === d.date ? 'var(--theme-order-soft)' : 'transparent' }">
+                  {{ formatAccuracy(getForecastAccuracy(d)) }}
+                </td>
+                <td class="text-center px-3 py-2 font-mono font-semibold text-xs" style="color: var(--color-muted);">
+                  {{ formatAccuracy(getOverallAccuracy()) }}
+                </td>
+              </tr>
+              <!-- Row 8: 履约仓T -->
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="py-2 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted);">
+                  <span class="inline-flex items-center gap-1">履约仓T<span @click="openAnnotation('履约仓T')" class="cursor-pointer text-[10px] opacity-50 hover:opacity-100" style="color: var(--color-muted);" title="查看口径">ⓘ</span></span>
+                </td>
+                <td v-for="d in dailyForecasts" :key="'wtT'+d.date"
+                  class="text-center px-2 py-2 font-mono text-xs"
+                  :style="{ color: currentWarehouseT[d.date] > 15 ? 'var(--color-red)' : currentWarehouseT[d.date] ? 'var(--color-ink)' : 'var(--color-muted)', background: selectedDate === d.date ? 'var(--theme-order-soft)' : 'transparent' }">
+                  {{ currentWarehouseT[d.date] != null ? currentWarehouseT[d.date].toFixed(1) + '′' : '—' }}
+                </td>
+                <td class="text-center px-3 py-2 font-mono font-semibold text-xs" style="color: var(--color-muted);">
+                  {{ avgWarehouseT }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 指标注解弹窗 -->
+        <div v-if="showAnnotation" class="fixed inset-0 z-50 flex items-center justify-center" @click.self="closeAnnotation" style="background: rgba(0,0,0,0.3);">
+          <div class="rounded-xl p-5 shadow-lg max-w-sm w-full mx-4" style="background: var(--color-surface); border: 1px solid var(--color-line);">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-semibold" style="color: var(--color-ink);">{{ annotationTitle }} · 口径说明</h4>
+              <span @click="closeAnnotation" class="cursor-pointer text-lg leading-none" style="color: var(--color-muted);">&times;</span>
+            </div>
+            <p class="text-xs leading-relaxed" style="color: var(--color-muted);">{{ annotationDesc }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 mt-3 flex-wrap">
+          <button @click="saveForecastsManual"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:shadow-md"
+            style="background: var(--theme-order); color: white;">
+            保存预估
+          </button>
+          <button @click="exportDailyForecast"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:shadow-md"
+            style="background: var(--theme-staff); color: white;">
+            导出预估+日志
+          </button>
+          <button @click="showChangeLog = !showChangeLog"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
+            style="border-color: var(--color-line); color: var(--color-muted);">
+            变更日志 {{ changeLog.length ? '(' + changeLog.length + ')' : '' }}
+          </button>
+          <span v-if="lastSaveTime" class="text-[10px]" style="color: var(--color-muted);">
+            已保存于 {{ lastSaveTime }}
+          </span>
+        </div>
+
+        <!-- 变更日志 -->
+        <div v-if="showChangeLog" class="mt-3 scroll-x">
+          <div v-if="changeLog.length" class="rounded-lg border overflow-hidden" style="border-color: var(--color-line);">
+            <table class="w-full text-xs">
+              <thead>
+                <tr style="background: rgba(232,226,216,0.3);">
+                  <th class="py-1.5 px-3 text-left font-semibold">时间</th>
+                  <th class="py-1.5 px-3 text-left font-semibold">日期</th>
+                  <th class="py-1.5 px-3 text-right font-semibold">原值</th>
+                  <th class="py-1.5 px-3 text-right font-semibold">新值</th>
+                  <th class="py-1.5 px-3 text-right font-semibold">变化</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(log, i) in changeLog.slice(0, 30)" :key="i" style="border-top: 1px solid var(--color-line);">
+                  <td class="py-1 px-3 font-mono" style="color: var(--color-muted);">{{ log.time }}</td>
+                  <td class="py-1 px-3 font-mono">{{ log.date.slice(5) }}</td>
+                  <td class="py-1 px-3 text-right font-mono" style="color: var(--color-muted);">{{ log.oldValue }}</td>
+                  <td class="py-1 px-3 text-right font-mono font-semibold" style="color: var(--theme-order);">{{ log.newValue }}</td>
+                  <td class="py-1 px-3 text-right font-mono" :style="{ color: log.newValue >= log.oldValue ? 'var(--color-red)' : 'var(--color-green)' }">
+                    {{ log.newValue >= log.oldValue ? '+' : '' }}{{ log.newValue - log.oldValue }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="text-xs text-center py-4 rounded-lg" style="color: var(--color-muted); background: rgba(232,226,216,0.2);">
+            暂无变更记录，修改预估数值后自动记录
+          </div>
+        </div>
+      </div>
+
+      <!-- 2B: 时段订单预估 -->
+      <div class="pt-4" style="border-top: 1px solid var(--color-line);">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-3">
+          <h3 class="sub-header">时段订单预估</h3>
+          <span class="text-xs" style="color: var(--color-muted);">数据来源：内置拣货单分布 + FBI看板实际订单</span>
+        </div>
+
+        <!-- 分布图表 -->
+        <div v-if="hourlyDistribution.length" style="position: relative; height: 220px;">
+          <canvas id="distributionChart"></canvas>
+        </div>
+
+        <!-- 拆分表格 -->
+        <div v-if="hourlyDistribution.length" class="scroll-x mt-3">
+          <table class="text-sm" style="border-collapse: separate; border-spacing: 0;">
+            <thead>
+              <tr>
+                <th class="sticky-col py-2 px-3 text-left font-semibold whitespace-nowrap" style="border-bottom: 2px solid var(--color-line); border-right: 1px solid var(--color-line); min-width: 90px;">指标 / 时段</th>
+                <th v-for="(item, i) in hourlyForecastData" :key="'hh'+i"
+                  class="px-1 py-2 text-center font-mono text-[10px] whitespace-nowrap"
+                  style="border-bottom: 2px solid var(--color-line); min-width: 48px;">
+                  {{ item.start }}
+                </th>
+                <th class="py-2 px-3 text-center font-semibold whitespace-nowrap" style="border-bottom: 2px solid var(--color-line); color: var(--theme-order);">合计</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="sticky-col py-1.5 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted); border-right: 1px solid var(--color-line);">占比</td>
+                <td v-for="(item, i) in hourlyForecastData" :key="'r'+i"
+                  class="text-center px-1 py-1.5 font-mono text-xs"
+                  style="color: var(--color-muted);">
+                  {{ (item.ratio * 100).toFixed(1) }}%
+                </td>
+                <td class="text-center px-3 py-1.5 font-mono font-semibold text-xs">100.0%</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="sticky-col py-1.5 px-3 font-semibold text-xs whitespace-nowrap" style="border-right: 1px solid var(--color-line);">预估单量</td>
+                <td v-for="(item, i) in hourlyForecastData" :key="'f'+i"
+                  class="text-center px-1 py-1.5 font-mono text-sm font-semibold"
+                  style="color: var(--theme-order);">
+                  {{ item.forecast }}
+                </td>
+                <td class="text-center px-3 py-1.5 font-mono font-semibold text-sm" style="color: var(--theme-order);">{{ selectedDayForecast }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Section 3: 人力排班 ==================== -->
+    <section class="section-card section-staff p-5 sm:p-6">
+      <div class="section-header flex-wrap gap-3">
+        <div class="section-icon">👥</div>
+        <div class="flex-1 min-w-[180px]">
+          <h2 class="section-title">人力排班</h2>
+          <div class="section-subtitle">STAFF SCHEDULING · 半小时粒度</div>
+        </div>
+        <div class="flex items-center gap-3 flex-wrap">
+          <div class="flex items-center gap-2">
+            <label class="text-xs" style="color: var(--color-muted);">排班日期</label>
+            <input type="date" v-model="selectedDate"
+              class="text-xs px-2 py-1 rounded border font-mono" style="border-color: var(--color-line);">
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-xs" style="color: var(--color-muted);">每人时效</label>
+            <input type="number" v-model.number="efficiencyPerHour" min="1" step="0.5"
+              class="w-16 px-2 py-1 rounded border text-right font-mono text-xs"
+              style="border-color: var(--color-line);">
+            <span class="text-xs" style="color: var(--color-muted);">单/人/小时</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 概览指标 -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div class="kpi-card">
+          <div class="kpi-label">总员工数</div>
+          <div class="kpi-value" style="color: var(--color-ink);">{{ staffList.length }}</div>
+        </div>
+        <div class="kpi-card" style="background: linear-gradient(135deg, #FFFFFF 0%, rgba(254,243,199,0.5) 100%); border-color: var(--theme-order-line);">
+          <div class="kpi-label">峰值需求</div>
+          <div class="kpi-value" style="color: var(--theme-order);">{{ peakDemand }}</div>
+        </div>
+        <div class="kpi-card" :style="gapStatus.understaffed > 0 ? 'background: linear-gradient(135deg, #FFFFFF 0%, rgba(254,226,226,0.6) 100%); border-color: #FCA5A5;' : ''">
+          <div class="kpi-label">缺人时段</div>
+          <div class="kpi-value" :style="{ color: gapStatus.understaffed > 0 ? 'var(--color-red)' : 'var(--color-ink)' }">{{ gapStatus.understaffed }}</div>
+        </div>
+        <div class="kpi-card" :style="gapStatus.perfect > 0 ? 'background: linear-gradient(135deg, #FFFFFF 0%, rgba(209,250,229,0.6) 100%); border-color: var(--theme-staff-line);' : ''">
+          <div class="kpi-label">匹配时段</div>
+          <div class="kpi-value" :style="{ color: gapStatus.perfect > 0 ? 'var(--theme-staff)' : 'var(--color-ink)' }">{{ gapStatus.perfect }}</div>
+        </div>
+      </div>
+
+      <!-- 员工管理 -->
+      <div class="flex items-center gap-2 mb-4 flex-wrap">
+        <button @click="showPoolModal = true"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-all hover:shadow-md"
+          style="border-color: var(--theme-staff-line); color: var(--theme-staff); background: var(--theme-staff-soft);">
+          🏊 员工池 ({{ employeePool.length }})
+        </button>
+        <button @click="autoSchedule"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:shadow-md"
+          style="background: linear-gradient(135deg, var(--theme-staff) 0%, #059669 100%); color: white;">
+          ⚡ 智能排班
+        </button>
+        <button @click="addStaff"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:shadow-md"
+          style="background: var(--color-red); color: white;"
+          title="添加临时小时工，排班标记为红色">
+          + 临时工
+        </button>
+        <button @click="clearAllShifts"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-gray-50"
+          style="border-color: var(--color-line); color: var(--color-muted);">
+          清空排班
+        </button>
+        <button @click="saveScheduleForDate(); alert('排班已保存至 ' + selectedDate)"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:shadow-md"
+          style="background: var(--color-blue); color: white;"
+          title="保存当前排班到该日期，切换日期时自动加载">
+          💾 保存排班
+        </button>
+        <span class="text-[11px] ml-1" style="color: var(--color-muted);">
+          <span style="color: var(--theme-staff);">●</span> 正式员工 &nbsp;
+          <span style="color: var(--color-red);">●</span> 临时小时工
+        </span>
+      </div>
+
+      <!-- 排班表格 -->
+      <div v-if="staffList.length && timeSlots.length" class="scroll-table rounded-lg border" style="border-color: var(--color-line);">
+        <table class="text-sm" style="border-collapse: separate; border-spacing: 0;">
+          <thead>
+            <tr>
+              <th class="sticky-corner px-3 py-2 text-left font-semibold whitespace-nowrap" style="border-bottom: 1px solid var(--color-line); min-width: 180px;">员工</th>
+              <th v-for="slot in timeSlots" :key="slot.label"
+                class="sticky-head px-1 py-2 text-center font-mono text-[10px] whitespace-nowrap"
+                :style="{ borderBottom: '1px solid var(--color-line)', background: slotDemand[timeSlots.indexOf(slot)] && slotDemand[timeSlots.indexOf(slot)].demand > 0 ? 'var(--theme-staff-soft)' : 'var(--color-surface)' }"
+                :title="'需求: ' + (slotDemand[timeSlots.indexOf(slot)]?.demand || 0)">
+                {{ slot.start }}
+              </th>
+              <th class="sticky-head px-2 py-2 text-center font-semibold text-xs" style="border-bottom: 1px solid var(--color-line);">工时</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(staff, idx) in staffList" :key="idx"
+              :class="{ 'temp-row': staff.isTemp }"
+              style="border-bottom: 1px solid var(--color-line);">
+              <td class="sticky-col px-3 py-2 whitespace-nowrap" style="border-right: 1px solid var(--color-line);">
+                <div class="flex items-center gap-1">
+                  <input v-model="staff.name" placeholder="员工姓名"
+                    class="text-sm px-2 py-1 rounded border w-28"
+                    :style="{ borderColor: staff.isTemp ? 'rgba(220,38,38,0.3)' : 'var(--color-line)' }">
+                  <span v-if="staff.isTemp" class="temp-badge">临时</span>
+                  <span v-else-if="staff.efficiency" class="eff-badge" :class="'eff-' + staff.efficiency">
+                    {{ '★'.repeat(staff.efficiency) }}{{ '☆'.repeat(3 - staff.efficiency) }}
+                  </span>
+                  <button @click="removeStaff(idx)" class="text-xs px-1" style="color: var(--color-red);">x</button>
+                </div>
+                <div class="flex items-center gap-1 mt-1">
+                  <select v-model="staff.quickStart"
+                    class="text-[10px] px-1 py-0.5 rounded border"
+                    style="border-color: var(--color-line);">
+                    <option value="">起</option>
+                    <option v-for="slot in timeSlots" :key="'qs'+slot.label" :value="slot.start">{{ slot.start }}</option>
+                  </select>
+                  <select v-model="staff.quickEnd"
+                    class="text-[10px] px-1 py-0.5 rounded border"
+                    style="border-color: var(--color-line);">
+                    <option value="">止</option>
+                    <option v-for="slot in timeSlots" :key="'qe'+slot.label" :value="slot.end">{{ slot.end }}</option>
+                  </select>
+                  <button @click="applyQuickSchedule(idx)"
+                    class="text-[10px] px-1.5 py-0.5 rounded"
+                    :style="{ background: staff.isTemp ? 'var(--color-red)' : 'var(--theme-staff)', color: 'white' }">填</button>
+                  <button @click="clearStaffShifts(idx)"
+                    class="text-[10px] px-1" style="color: var(--color-muted);">清</button>
+                </div>
+              </td>
+              <td v-for="slot in timeSlots" :key="slot.label"
+                class="text-center px-1 py-2"
+                :style="{ background: staff.shifts[slot.label] ? (staff.isTemp ? 'rgba(220,38,38,0.06)' : 'var(--theme-staff-soft)') : 'transparent' }">
+                <input type="checkbox" v-model="staff.shifts[slot.label]"
+                  :class="['shift-checkbox', { 'shift-checkbox-temp': staff.isTemp }]">
+              </td>
+              <td class="text-center px-2 py-2 font-mono text-xs" :style="{ color: staff.isTemp ? 'var(--color-red)' : 'var(--color-muted)' }">
+                {{ staffWorkHours(idx) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 汇总表 -->
+      <div v-if="slotGap.length" class="mt-5">
+        <h3 class="sub-header">时段需求 vs 排班对比</h3>
+        <div class="flex items-center gap-4 mb-3 flex-wrap text-xs" style="color: var(--color-muted);">
+          <span>峰值需求: <strong style="color: var(--color-red);">{{ peakDemand }}</strong> 人</span>
+          <span>峰值时段: <strong style="color: var(--color-ink);">{{ peakDemandSlot }}</strong></span>
+          <span>总需求人时: <strong style="color: var(--theme-staff);">{{ totalDemandHours }}</strong> 人时</span>
+          <span>时效: <strong style="color: var(--color-ink);">{{ efficiencyPerHour }}</strong> 单/人时</span>
+        </div>
+        <div class="scroll-x">
+          <table class="text-sm" style="border-collapse: separate; border-spacing: 0;">
+            <thead>
+              <tr>
+                <th class="sticky-col py-2 px-3 text-left font-semibold whitespace-nowrap" style="border-bottom: 2px solid var(--color-line); border-right: 1px solid var(--color-line); min-width: 80px;">指标 / 时段</th>
+                <th v-for="(item, i) in slotGap" :key="'sgh'+i"
+                  class="px-1 py-2 text-center font-mono text-[10px] whitespace-nowrap"
+                  :style="{ borderBottom: '2px solid var(--color-line)', minWidth: '48px', background: statusBg(item.status) }">
+                  {{ item.start }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="sticky-col py-1.5 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted); border-right: 1px solid var(--color-line);">预估单量</td>
+                <td v-for="(item, i) in hourlyForecastData" :key="'fv'+i"
+                  class="text-center px-1 py-1.5 font-mono text-xs"
+                  style="color: var(--theme-order);">
+                  {{ item.forecast }}
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="sticky-col py-1.5 px-3 font-semibold text-xs whitespace-nowrap" style="border-right: 1px solid var(--color-line);">需求人数</td>
+                <td v-for="(item, i) in slotGap" :key="'d'+i"
+                  class="text-center px-1 py-1.5 font-mono font-semibold"
+                  :style="{ background: statusBg(item.status) }">
+                  {{ item.demand }}
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="sticky-col py-1.5 px-3 font-semibold text-xs whitespace-nowrap" style="border-right: 1px solid var(--color-line);">排班人数</td>
+                <td v-for="(item, i) in slotGap" :key="'s'+i"
+                  class="text-center px-1 py-1.5 font-mono font-semibold"
+                  :style="{ background: statusBg(item.status) }">
+                  {{ item.scheduled }}
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-line);">
+                <td class="sticky-col py-1.5 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted); border-right: 1px solid var(--color-line);">差异</td>
+                <td v-for="(item, i) in slotGap" :key="'g'+i"
+                  class="text-center px-1 py-1.5 font-mono text-xs"
+                  :style="{ color: statusColor(item.status), background: statusBg(item.status) }">
+                  {{ item.gap > 0 ? '+' + item.gap : item.gap }}
+                </td>
+              </tr>
+              <tr>
+                <td class="sticky-col py-1.5 px-3 font-semibold text-xs whitespace-nowrap" style="color: var(--color-muted); border-right: 1px solid var(--color-line);">状态</td>
+                <td v-for="(item, i) in slotGap" :key="'st'+i"
+                  class="text-center px-1 py-1.5"
+                  :style="{ background: statusBg(item.status) }">
+                  <span class="badge text-[10px]" :style="{ background: statusBadgeBg(item.status), color: statusColor(item.status) }">
+                    {{ statusLabel(item.status) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 图表 -->
+        <div class="mt-4" style="position: relative; height: 280px;">
+          <canvas id="schedulingChart"></canvas>
+        </div>
+      </div>
+
+      <div v-if="!staffList.length" class="text-center py-8 text-sm" style="color: var(--color-muted);">
+        点击"添加员工"开始排班
+      </div>
+
+      <!-- 排班文件夹 -->
+      <div class="mt-5 pt-4" style="border-top: 1px solid var(--color-line);">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 class="sub-header">排班文件夹</h3>
+          <button @click="exportScheduling"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:shadow-md"
+            style="background: var(--theme-staff); color: white;">
+            导出当日排班
+          </button>
+        </div>
+        <div v-if="savedSchedules.length" class="space-y-2">
+          <div v-for="(sch, idx) in savedSchedules" :key="idx"
+            class="flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-sm"
+            style="background: var(--color-surface); border-color: var(--color-line);">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style="background: var(--theme-staff-soft); color: var(--theme-staff); font-weight: 700;">
+              📁
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-semibold truncate" style="color: var(--color-ink);">{{ sch.date }} · {{ sch.store }}</div>
+              <div class="text-[11px]" style="color: var(--color-muted);">{{ sch.staffCount }}人排班 · 保存于 {{ sch.saveTime }}</div>
+            </div>
+            <button @click="reExportSchedule(idx)"
+              class="px-2.5 py-1 rounded text-[11px] font-medium border transition-colors hover:bg-emerald-50"
+              style="border-color: var(--theme-staff-line); color: var(--theme-staff);">
+              重新导出
+            </button>
+            <button @click="deleteSchedule(idx)"
+              class="px-2 py-1 rounded text-[11px]" style="color: var(--color-red);">删除</button>
+          </div>
+        </div>
+        <div v-else class="text-xs text-center py-6 rounded-lg" style="color: var(--color-muted); background: rgba(232,226,216,0.2);">
+          暂无保存的排班，点击"导出当日排班"保存
+        </div>
+      </div>
+
+      <!-- 员工池弹窗 -->
+      <div v-if="showPoolModal" class="modal-overlay" @click.self="showPoolModal = false">
+        <div class="modal-box">
+          <button class="modal-close" @click="showPoolModal = false">×</button>
+          <div class="flex items-center gap-3 mb-5">
+            <div class="section-icon" style="background: var(--theme-staff-soft); color: var(--theme-staff);">🏊</div>
+            <div>
+              <h2 style="font-family: var(--font-display); font-size: 20px; margin: 0;">员工池管理</h2>
+              <div style="font-size: 12px; color: var(--color-muted);">EMPLOYEE POOL · 管理门店员工信息与可用时段</div>
+            </div>
+          </div>
+
+          <!-- 添加/编辑员工表单 -->
+          <div class="rounded-xl p-4 mb-4" style="background: rgba(245,243,239,0.5); border: 1px solid var(--color-line);">
+            <div class="flex items-center gap-3 flex-wrap mb-3">
+              <input v-model="newPoolEmployee.name" placeholder="员工姓名"
+                class="text-sm px-3 py-1.5 rounded-lg border w-36"
+                style="border-color: var(--color-line);">
+              <div class="flex items-center gap-2">
+                <span class="text-xs" style="color: var(--color-muted);">出勤时间</span>
+                <select v-model="newPoolEmployee.timeStart" @change="autoFillSlotsFromRange"
+                  class="text-sm px-2 py-1.5 rounded-lg border"
+                  style="border-color: var(--color-line);">
+                  <option value="">开始</option>
+                  <option v-for="slot in timeSlots" :key="'ts'+slot.label" :value="slot.start">{{ slot.start }}</option>
+                </select>
+                <span class="text-xs" style="color: var(--color-muted);">至</span>
+                <select v-model="newPoolEmployee.timeEnd" @change="autoFillSlotsFromRange"
+                  class="text-sm px-2 py-1.5 rounded-lg border"
+                  style="border-color: var(--color-line);">
+                  <option value="">结束</option>
+                  <option v-for="slot in timeSlots" :key="'te'+slot.label" :value="slot.end">{{ slot.end }}</option>
+                </select>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs" style="color: var(--color-muted);">效率评级</span>
+                <select v-model.number="newPoolEmployee.efficiency"
+                  class="text-sm px-2 py-1.5 rounded-lg border"
+                  style="border-color: var(--color-line);">
+                  <option :value="3">★★★ 高</option>
+                  <option :value="2">★★☆ 中</option>
+                  <option :value="1">★☆☆ 低</option>
+                </select>
+              </div>
+              <div>
+                <span class="text-xs block mb-1" style="color: var(--color-muted);">出勤日期（点击切换）</span>
+                <div class="flex flex-wrap gap-1">
+                  <span v-for="day in weekDays" :key="'wd'+day"
+                    @click="togglePoolDay(day)"
+                    class="inline-flex items-center px-2.5 py-1 rounded text-xs cursor-pointer transition-all select-none"
+                    :style="{
+                      background: newPoolEmployee.availableDays.includes(day) ? 'var(--theme-staff-soft)' : 'rgba(232,226,216,0.3)',
+                      color: newPoolEmployee.availableDays.includes(day) ? 'var(--theme-staff)' : 'var(--color-muted)',
+                      border: '1px solid ' + (newPoolEmployee.availableDays.includes(day) ? 'var(--theme-staff-line)' : 'transparent'),
+                      fontWeight: newPoolEmployee.availableDays.includes(day) ? '600' : '400'
+                    }">
+                    {{ day }}
+                  </span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs" style="color: var(--color-muted);">入职时间</span>
+                <input v-model="newPoolEmployee.hireDate" type="date"
+                  class="text-sm px-2 py-1.5 rounded-lg border"
+                  style="border-color: var(--color-line);">
+              </div>
+              <button @click="addPoolEmployee"
+                class="px-3 py-1.5 rounded-lg text-sm font-medium"
+                style="background: var(--theme-staff); color: white;">
+                {{ editingPoolIdx >= 0 ? '更新' : '+ 加入员工池' }}
+              </button>
+              <button v-if="editingPoolIdx >= 0" @click="cancelPoolEdit"
+                class="px-3 py-1.5 rounded-lg text-sm border"
+                style="border-color: var(--color-line); color: var(--color-muted);">
+                取消
+              </button>
+            </div>
+            <!-- 可视化时段条：点击切换单个时段 -->
+            <div>
+              <div class="text-xs mb-2" style="color: var(--color-muted);">已选时段（点击取消/恢复）：</div>
+              <div class="flex flex-wrap gap-1">
+                <span v-for="slot in timeSlots" :key="'vt'+slot.label"
+                  @click="togglePoolSlot(slot.label)"
+                  class="inline-flex items-center px-2 py-1 rounded text-xs cursor-pointer transition-all select-none"
+                  :style="{
+                    background: newPoolEmployee.availableSlots[slot.label] ? 'var(--theme-staff-soft)' : 'rgba(232,226,216,0.3)',
+                    color: newPoolEmployee.availableSlots[slot.label] ? 'var(--theme-staff)' : 'var(--color-muted)',
+                    border: '1px solid ' + (newPoolEmployee.availableSlots[slot.label] ? 'var(--theme-staff-line)' : 'transparent'),
+                    fontWeight: newPoolEmployee.availableSlots[slot.label] ? '600' : '400'
+                  }">
+                  {{ slot.start }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 员工池列表 -->
+          <div v-if="employeePool.length" class="scroll-table" style="max-height: 360px;">
+            <table class="text-sm w-full" style="border-collapse: separate; border-spacing: 0;">
+              <thead>
+                <tr>
+                  <th class="text-left px-3 py-2 font-semibold text-xs" style="border-bottom: 1px solid var(--color-line); color: var(--color-muted);">姓名</th>
+                  <th class="text-center px-3 py-2 font-semibold text-xs" style="border-bottom: 1px solid var(--color-line); color: var(--color-muted);">出勤时间</th>
+                  <th class="text-center px-3 py-2 font-semibold text-xs" style="border-bottom: 1px solid var(--color-line); color: var(--color-muted);">效率</th>
+                  <th class="text-center px-3 py-2 font-semibold text-xs" style="border-bottom: 1px solid var(--color-line); color: var(--color-muted);">出勤日期</th>
+                  <th class="text-center px-3 py-2 font-semibold text-xs" style="border-bottom: 1px solid var(--color-line); color: var(--color-muted);">入职时间</th>
+                  <th class="text-center px-3 py-2 font-semibold text-xs" style="border-bottom: 1px solid var(--color-line); color: var(--color-muted);">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(emp, idx) in employeePool" :key="idx"
+                  style="border-bottom: 1px solid var(--color-line);">
+                  <td class="px-3 py-2 font-medium pool-name">{{ emp.name }}</td>
+                  <td class="text-center px-3 py-2 text-xs" style="color: var(--color-blue);">
+                    {{ emp.timeStart && emp.timeEnd ? emp.timeStart + '–' + emp.timeEnd : '—' }}
+                  </td>
+                  <td class="text-center px-3 py-2">
+                    <span class="eff-badge" :class="'eff-' + emp.efficiency">
+                      {{ '★'.repeat(emp.efficiency) }}{{ '☆'.repeat(3 - emp.efficiency) }}
+                    </span>
+                  </td>
+                  <td class="text-center px-3 py-2 text-xs">
+                    {{ (emp.availableDays && emp.availableDays.length) ? emp.availableDays.join('、') : '—' }}
+                  </td>
+                  <td class="text-center px-3 py-2 text-xs" style="color: var(--color-muted);">
+                    {{ emp.hireDate || '—' }}
+                  </td>
+                  <td class="text-center px-3 py-2">
+                    <button @click="editPoolEmployee(idx)"
+                      class="text-[11px] px-2 py-0.5 rounded mr-1"
+                      style="color: var(--color-blue); background: rgba(37,99,235,0.08);">编辑</button>
+                    <button @click="removePoolEmployee(idx)"
+                      class="text-[11px] px-2 py-0.5 rounded"
+                      style="color: var(--color-red); background: rgba(220,38,38,0.08);">删除</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="text-center py-8 text-sm" style="color: var(--color-muted);">
+            员工池为空，请在上方添加门店员工
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const { createApp, ref, reactive, computed, watch, onMounted, nextTick } = Vue;
+
+createApp({
+  setup() {
+    // ==================== 城市坐标 ====================
+    const cityCoords = {
+      '北京': { lat: 39.9042, lon: 116.4074 },
+      '上海': { lat: 31.2304, lon: 121.4737 },
+      '广州': { lat: 23.1291, lon: 113.2644 },
+      '深圳': { lat: 22.5431, lon: 114.0579 },
+      '杭州': { lat: 30.2741, lon: 120.1551 },
+      '成都': { lat: 30.5728, lon: 104.0668 },
+      '武汉': { lat: 30.5928, lon: 114.3055 },
+      '西安': { lat: 34.3416, lon: 108.9398 },
+      '南京': { lat: 32.0603, lon: 118.7969 },
+      '重庆': { lat: 29.5630, lon: 106.5516 },
+      '苏州': { lat: 31.2989, lon: 120.5853 },
+      '天津': { lat: 39.3434, lon: 117.3616 },
+      '长沙': { lat: 28.2282, lon: 112.9388 },
+      '郑州': { lat: 34.7466, lon: 113.6253 },
+      '青岛': { lat: 36.0671, lon: 120.3826 },
+      '沈阳': { lat: 41.8057, lon: 123.4315 },
+      '哈尔滨': { lat: 45.8038, lon: 126.5350 },
+      '济南': { lat: 36.6512, lon: 117.1201 },
+      '合肥': { lat: 31.8206, lon: 117.2272 },
+      '福州': { lat: 26.0745, lon: 119.2965 },
+      '昆明': { lat: 24.8801, lon: 102.8329 },
+      '贵阳': { lat: 26.6470, lon: 106.6302 },
+      '南宁': { lat: 22.8170, lon: 108.3669 },
+      '太原': { lat: 37.8706, lon: 112.5488 },
+      '石家庄': { lat: 38.0428, lon: 114.5149 },
+      '呼和浩特': { lat: 40.8426, lon: 111.7511 },
+      '乌鲁木齐': { lat: 43.8256, lon: 87.6168 },
+      '兰州': { lat: 36.0611, lon: 103.8343 },
+      '银川': { lat: 38.4872, lon: 106.2309 },
+      '西宁': { lat: 36.6171, lon: 101.7782 },
+      '海口': { lat: 20.0440, lon: 110.1990 },
+      '南昌': { lat: 28.6820, lon: 115.8579 },
+      '长春': { lat: 43.8171, lon: 125.3235 },
+      '大连': { lat: 38.9140, lon: 121.6147 },
+      '厦门': { lat: 24.4798, lon: 118.0894 },
+      '无锡': { lat: 31.4912, lon: 120.3119 },
+      '宁波': { lat: 29.8683, lon: 121.5440 },
+    };
+
+    // ==================== 品牌门店数据 ====================
+    // 成山农场门店级拣货单分布数据（2026.8.31-9.6，按门店拆分）
+    let storeDistData = {
+      '龙湖天街店': {weekday:[
+        {start:'07:00',ratio:0.0},{start:'07:30',ratio:0.04385},{start:'08:00',ratio:0.025626},{start:'08:30',ratio:0.027904},
+        {start:'09:00',ratio:0.041002},{start:'09:30',ratio:0.037585},{start:'10:00',ratio:0.040433},{start:'10:30',ratio:0.037585},
+        {start:'11:00',ratio:0.046128},{start:'11:30',ratio:0.041572},{start:'12:00',ratio:0.03246},{start:'12:30',ratio:0.036446},
+        {start:'13:00',ratio:0.03303},{start:'13:30',ratio:0.030752},{start:'14:00',ratio:0.026765},{start:'14:30',ratio:0.025057},
+        {start:'15:00',ratio:0.03246},{start:'15:30',ratio:0.045558},{start:'16:00',ratio:0.04385},{start:'16:30',ratio:0.04328},
+        {start:'17:00',ratio:0.055239},{start:'17:30',ratio:0.047836},{start:'18:00',ratio:0.053531},{start:'18:30',ratio:0.052392},
+        {start:'19:00',ratio:0.055239},{start:'19:30',ratio:0.040433},{start:'20:00',ratio:0.003986},{start:'20:30',ratio:0.0},
+        {start:'21:00',ratio:0.0},{start:'21:30',ratio:0.0},
+      ],weekend:[
+        {start:'07:00',ratio:0.0},{start:'07:30',ratio:0.049398},{start:'08:00',ratio:0.028916},{start:'08:30',ratio:0.031325},
+        {start:'09:00',ratio:0.042169},{start:'09:30',ratio:0.045783},{start:'10:00',ratio:0.073494},{start:'10:30',ratio:0.061446},
+        {start:'11:00',ratio:0.049398},{start:'11:30',ratio:0.045783},{start:'12:00',ratio:0.042169},{start:'12:30',ratio:0.03494},
+        {start:'13:00',ratio:0.024096},{start:'13:30',ratio:0.027711},{start:'14:00',ratio:0.019277},{start:'14:30',ratio:0.033735},
+        {start:'15:00',ratio:0.028916},{start:'15:30',ratio:0.03253},{start:'16:00',ratio:0.046988},{start:'16:30',ratio:0.03494},
+        {start:'17:00',ratio:0.049398},{start:'17:30',ratio:0.042169},{start:'18:00',ratio:0.042169},{start:'18:30',ratio:0.038554},
+        {start:'19:00',ratio:0.043373},{start:'19:30',ratio:0.028916},{start:'20:00',ratio:0.00241},{start:'20:30',ratio:0.0},
+        {start:'21:00',ratio:0.0},{start:'21:30',ratio:0.0},
+      ]},
+      '凯德广场店': {weekday:[
+        {start:'07:00',ratio:0.009167},{start:'07:30',ratio:0.005348},{start:'08:00',ratio:0.020626},{start:'08:30',ratio:0.019099},
+        {start:'09:00',ratio:0.029794},{start:'09:30',ratio:0.033613},{start:'10:00',ratio:0.040489},{start:'10:30',ratio:0.037433},
+        {start:'11:00',ratio:0.05424},{start:'11:30',ratio:0.040489},{start:'12:00',ratio:0.048892},{start:'12:30',ratio:0.039725},
+        {start:'13:00',ratio:0.03285},{start:'13:30',ratio:0.037433},{start:'14:00',ratio:0.02139},{start:'14:30',ratio:0.033613},
+        {start:'15:00',ratio:0.026738},{start:'15:30',ratio:0.038961},{start:'16:00',ratio:0.052712},{start:'16:30',ratio:0.037433},
+        {start:'17:00',ratio:0.039725},{start:'17:30',ratio:0.05424},{start:'18:00',ratio:0.045837},{start:'18:30',ratio:0.055768},
+        {start:'19:00',ratio:0.052712},{start:'19:30',ratio:0.03285},{start:'20:00',ratio:0.019099},{start:'20:30',ratio:0.012987},
+        {start:'21:00',ratio:0.012223},{start:'21:30',ratio:0.014515},
+      ],weekend:[
+        {start:'07:00',ratio:0.008535},{start:'07:30',ratio:0.012802},{start:'08:00',ratio:0.018492},{start:'08:30',ratio:0.029872},
+        {start:'09:00',ratio:0.048364},{start:'09:30',ratio:0.054054},{start:'10:00',ratio:0.054054},{start:'10:30',ratio:0.049787},
+        {start:'11:00',ratio:0.062589},{start:'11:30',ratio:0.055477},{start:'12:00',ratio:0.054054},{start:'12:30',ratio:0.034139},
+        {start:'13:00',ratio:0.027027},{start:'13:30',ratio:0.029872},{start:'14:00',ratio:0.031294},{start:'14:30',ratio:0.021337},
+        {start:'15:00',ratio:0.034139},{start:'15:30',ratio:0.031294},{start:'16:00',ratio:0.032717},{start:'16:30',ratio:0.031294},
+        {start:'17:00',ratio:0.046942},{start:'17:30',ratio:0.044097},{start:'18:00',ratio:0.032717},{start:'18:30',ratio:0.032717},
+        {start:'19:00',ratio:0.036984},{start:'19:30',ratio:0.032717},{start:'20:00',ratio:0.01138},{start:'20:30',ratio:0.01138},
+        {start:'21:00',ratio:0.015647},{start:'21:30',ratio:0.014225},
+      ]},
+      '曲江京东MALL店': {weekday:[
+        {start:'07:00',ratio:0.009924},{start:'07:30',ratio:0.016794},{start:'08:00',ratio:0.024427},{start:'08:30',ratio:0.035115},
+        {start:'09:00',ratio:0.040458},{start:'09:30',ratio:0.054962},{start:'10:00',ratio:0.045802},{start:'10:30',ratio:0.038168},
+        {start:'11:00',ratio:0.036641},{start:'11:30',ratio:0.047328},{start:'12:00',ratio:0.032824},{start:'12:30',ratio:0.032824},
+        {start:'13:00',ratio:0.035115},{start:'13:30',ratio:0.025191},{start:'14:00',ratio:0.028244},{start:'14:30',ratio:0.044275},
+        {start:'15:00',ratio:0.029008},{start:'15:30',ratio:0.035878},{start:'16:00',ratio:0.038931},{start:'16:30',ratio:0.047328},
+        {start:'17:00',ratio:0.051908},{start:'17:30',ratio:0.039695},{start:'18:00',ratio:0.033588},{start:'18:30',ratio:0.050382},
+        {start:'19:00',ratio:0.042748},{start:'19:30',ratio:0.036641},{start:'20:00',ratio:0.01145},{start:'20:30',ratio:0.009924},
+        {start:'21:00',ratio:0.010687},{start:'21:30',ratio:0.01374},
+      ],weekend:[
+        {start:'07:00',ratio:0.009063},{start:'07:30',ratio:0.018127},{start:'08:00',ratio:0.02568},{start:'08:30',ratio:0.039275},
+        {start:'09:00',ratio:0.042296},{start:'09:30',ratio:0.05287},{start:'10:00',ratio:0.046828},{start:'10:30',ratio:0.058912},
+        {start:'11:00',ratio:0.05287},{start:'11:30',ratio:0.05287},{start:'12:00',ratio:0.036254},{start:'12:30',ratio:0.039275},
+        {start:'13:00',ratio:0.043807},{start:'13:30',ratio:0.036254},{start:'14:00',ratio:0.031722},{start:'14:30',ratio:0.036254},
+        {start:'15:00',ratio:0.039275},{start:'15:30',ratio:0.037764},{start:'16:00',ratio:0.02568},{start:'16:30',ratio:0.057402},
+        {start:'17:00',ratio:0.034743},{start:'17:30',ratio:0.043807},{start:'18:00',ratio:0.033233},{start:'18:30',ratio:0.024169},
+        {start:'19:00',ratio:0.036254},{start:'19:30',ratio:0.016616},{start:'20:00',ratio:0.010574},{start:'20:30',ratio:0.006042},
+        {start:'21:00',ratio:0.004532},{start:'21:30',ratio:0.007553},
+      ]},
+      '星旋广场店': {weekday:[
+        {start:'07:00',ratio:0.002006},{start:'07:30',ratio:0.003009},{start:'08:00',ratio:0.014042},{start:'08:30',ratio:0.013039},
+        {start:'09:00',ratio:0.038114},{start:'09:30',ratio:0.032096},{start:'10:00',ratio:0.041123},{start:'10:30',ratio:0.048144},
+        {start:'11:00',ratio:0.048144},{start:'11:30',ratio:0.043129},{start:'12:00',ratio:0.031093},{start:'12:30',ratio:0.046138},
+        {start:'13:00',ratio:0.027081},{start:'13:30',ratio:0.024072},{start:'14:00',ratio:0.047141},{start:'14:30',ratio:0.029087},
+        {start:'15:00',ratio:0.031093},{start:'15:30',ratio:0.045135},{start:'16:00',ratio:0.039117},{start:'16:30',ratio:0.046138},
+        {start:'17:00',ratio:0.062187},{start:'17:30',ratio:0.045135},{start:'18:00',ratio:0.049147},{start:'18:30',ratio:0.060181},
+        {start:'19:00',ratio:0.052156},{start:'19:30',ratio:0.057172},{start:'20:00',ratio:0.018054},{start:'20:30',ratio:0.005015},
+        {start:'21:00',ratio:0.0},{start:'21:30',ratio:0.002006},
+      ],weekend:[
+        {start:'07:00',ratio:0.0},{start:'07:30',ratio:0.00346},{start:'08:00',ratio:0.00519},{start:'08:30',ratio:0.022491},
+        {start:'09:00',ratio:0.050173},{start:'09:30',ratio:0.065744},{start:'10:00',ratio:0.077855},{start:'10:30',ratio:0.055363},
+        {start:'11:00',ratio:0.053633},{start:'11:30',ratio:0.048443},{start:'12:00',ratio:0.044983},{start:'12:30',ratio:0.032872},
+        {start:'13:00',ratio:0.032872},{start:'13:30',ratio:0.048443},{start:'14:00',ratio:0.027682},{start:'14:30',ratio:0.027682},
+        {start:'15:00',ratio:0.032872},{start:'15:30',ratio:0.031142},{start:'16:00',ratio:0.039792},{start:'16:30',ratio:0.051903},
+        {start:'17:00',ratio:0.053633},{start:'17:30',ratio:0.036332},{start:'18:00',ratio:0.048443},{start:'18:30',ratio:0.036332},
+        {start:'19:00',ratio:0.032872},{start:'19:30',ratio:0.022491},{start:'20:00',ratio:0.015571},{start:'20:30',ratio:0.0},
+        {start:'21:00',ratio:0.00173},{start:'21:30',ratio:0.0},
+      ]},
+      '沣渭中心店': {weekday:[
+        {start:'07:00',ratio:0.001126},{start:'07:30',ratio:0.002252},{start:'08:00',ratio:0.006757},{start:'08:30',ratio:0.011261},
+        {start:'09:00',ratio:0.040541},{start:'09:30',ratio:0.043919},{start:'10:00',ratio:0.041667},{start:'10:30',ratio:0.033784},
+        {start:'11:00',ratio:0.04955},{start:'11:30',ratio:0.058559},{start:'12:00',ratio:0.041667},{start:'12:30',ratio:0.03491},
+        {start:'13:00',ratio:0.025901},{start:'13:30',ratio:0.033784},{start:'14:00',ratio:0.030405},{start:'14:30',ratio:0.030405},
+        {start:'15:00',ratio:0.030405},{start:'15:30',ratio:0.031532},{start:'16:00',ratio:0.043919},{start:'16:30',ratio:0.032658},
+        {start:'17:00',ratio:0.045045},{start:'17:30',ratio:0.083333},{start:'18:00',ratio:0.054054},{start:'18:30',ratio:0.045045},
+        {start:'19:00',ratio:0.039414},{start:'19:30',ratio:0.047297},{start:'20:00',ratio:0.030405},{start:'20:30',ratio:0.024775},
+        {start:'21:00',ratio:0.005631},{start:'21:30',ratio:0.0},
+      ],weekend:[
+        {start:'07:00',ratio:0.00188},{start:'07:30',ratio:0.005639},{start:'08:00',ratio:0.009398},{start:'08:30',ratio:0.013158},
+        {start:'09:00',ratio:0.041353},{start:'09:30',ratio:0.050752},{start:'10:00',ratio:0.020677},{start:'10:30',ratio:0.054511},
+        {start:'11:00',ratio:0.052632},{start:'11:30',ratio:0.065789},{start:'12:00',ratio:0.041353},{start:'12:30',ratio:0.067669},
+        {start:'13:00',ratio:0.043233},{start:'13:30',ratio:0.048872},{start:'14:00',ratio:0.033835},{start:'14:30',ratio:0.031955},
+        {start:'15:00',ratio:0.035714},{start:'15:30',ratio:0.031955},{start:'16:00',ratio:0.043233},{start:'16:30',ratio:0.043233},
+        {start:'17:00',ratio:0.045113},{start:'17:30',ratio:0.041353},{start:'18:00',ratio:0.045113},{start:'18:30',ratio:0.024436},
+        {start:'19:00',ratio:0.037594},{start:'19:30',ratio:0.043233},{start:'20:00',ratio:0.013158},{start:'20:30',ratio:0.013158},
+        {start:'21:00',ratio:0.0},{start:'21:30',ratio:0.0},
+      ]},
+      '凤城十路店': {weekday:[
+        {start:'07:00',ratio:0.004975},{start:'07:30',ratio:0.017413},{start:'08:00',ratio:0.027363},{start:'08:30',ratio:0.037313},
+        {start:'09:00',ratio:0.049751},{start:'09:30',ratio:0.037313},{start:'10:00',ratio:0.034826},{start:'10:30',ratio:0.062189},
+        {start:'11:00',ratio:0.039801},{start:'11:30',ratio:0.044776},{start:'12:00',ratio:0.042289},{start:'12:30',ratio:0.054726},
+        {start:'13:00',ratio:0.042289},{start:'13:30',ratio:0.039801},{start:'14:00',ratio:0.029851},{start:'14:30',ratio:0.037313},
+        {start:'15:00',ratio:0.024876},{start:'15:30',ratio:0.037313},{start:'16:00',ratio:0.044776},{start:'16:30',ratio:0.049751},
+        {start:'17:00',ratio:0.052239},{start:'17:30',ratio:0.037313},{start:'18:00',ratio:0.042289},{start:'18:30',ratio:0.052239},
+        {start:'19:00',ratio:0.032338},{start:'19:30',ratio:0.002488},{start:'20:00',ratio:0.00995},{start:'20:30',ratio:0.002488},
+        {start:'21:00',ratio:0.002488},{start:'21:30',ratio:0.007463},
+      ],weekend:[
+        {start:'07:00',ratio:0.005208},{start:'07:30',ratio:0.020833},{start:'08:00',ratio:0.015625},{start:'08:30',ratio:0.026042},
+        {start:'09:00',ratio:0.036458},{start:'09:30',ratio:0.052083},{start:'10:00',ratio:0.0625},{start:'10:30',ratio:0.057292},
+        {start:'11:00',ratio:0.046875},{start:'11:30',ratio:0.067708},{start:'12:00',ratio:0.057292},{start:'12:30',ratio:0.036458},
+        {start:'13:00',ratio:0.041667},{start:'13:30',ratio:0.026042},{start:'14:00',ratio:0.03125},{start:'14:30',ratio:0.036458},
+        {start:'15:00',ratio:0.020833},{start:'15:30',ratio:0.041667},{start:'16:00',ratio:0.041667},{start:'16:30',ratio:0.026042},
+        {start:'17:00',ratio:0.015625},{start:'17:30',ratio:0.041667},{start:'18:00',ratio:0.057292},{start:'18:30',ratio:0.036458},
+        {start:'19:00',ratio:0.03125},{start:'19:30',ratio:0.015625},{start:'20:00',ratio:0.010417},{start:'20:30',ratio:0.010417},
+        {start:'21:00',ratio:0.015625},{start:'21:30',ratio:0.015625},
+      ]},
+    };
+    // 成山农场门店级每日订单汇总（2026.8.8-9.16）
+    // FBI看板1796001 门店级每日订单 (2026.8.8-9.16)
+    let storeDailyData = {
+      '龙湖天街店': {'2026-08-08':377,'2026-08-09':380,'2026-08-10':354,'2026-08-11':251,'2026-08-12':267,'2026-08-13':315,'2026-08-14':294,'2026-08-15':389,'2026-08-16':352,'2026-08-17':283,'2026-08-18':347,'2026-08-19':281,'2026-08-20':317,'2026-08-21':343,'2026-08-22':465,'2026-08-23':417,'2026-08-24':348,'2026-08-25':370,'2026-08-26':378,'2026-08-27':406,'2026-08-28':398,'2026-08-29':393,'2026-08-30':414,'2026-08-31':347,'2026-09-01':378,'2026-09-02':333,'2026-09-03':335,'2026-09-04':303,'2026-09-05':392,'2026-09-06':412,'2026-09-07':324,'2026-09-08':365,'2026-09-09':414,'2026-09-10':365,'2026-09-11':329,'2026-09-12':376,'2026-09-13':368,'2026-09-14':311,'2026-09-15':306,'2026-09-16':306},
+    };
+    // 成山农场品牌级汇总分布（全门店合计）
+    let brandDistData = {
+      '成山农场': {weekday:[
+        {start:'07:00',ratio:0.006032},{start:'07:30',ratio:0.00935},{start:'08:00',ratio:0.019152},{start:'08:30',ratio:0.022621},
+        {start:'09:00',ratio:0.037853},{start:'09:30',ratio:0.040265},{start:'10:00',ratio:0.040265},{start:'10:30',ratio:0.039361},
+        {start:'11:00',ratio:0.045845},{start:'11:30',ratio:0.045996},{start:'12:00',ratio:0.037853},{start:'12:30',ratio:0.039662},
+        {start:'13:00',ratio:0.032725},{start:'13:30',ratio:0.031368},{start:'14:00',ratio:0.02986},{start:'14:30',ratio:0.033027},
+        {start:'15:00',ratio:0.029709},{start:'15:30',ratio:0.039813},{start:'16:00',ratio:0.045091},{start:'16:30',ratio:0.042678},
+        {start:'17:00',ratio:0.049615},{start:'17:30',ratio:0.049917},{start:'18:00',ratio:0.046147},{start:'18:30',ratio:0.052782},
+        {start:'19:00',ratio:0.047957},{start:'19:30',ratio:0.040416},{start:'20:00',ratio:0.016589},{start:'20:30',ratio:0.010707},
+        {start:'21:00',ratio:0.007993},{start:'21:30',ratio:0.00935},
+      ],weekend:[
+        {start:'07:00',ratio:0.005165},{start:'07:30',ratio:0.011191},{start:'08:00',ratio:0.01693},{start:'08:30',ratio:0.026686},
+        {start:'09:00',ratio:0.042468},{start:'09:30',ratio:0.052224},{start:'10:00',ratio:0.05538},{start:'10:30',ratio:0.056815},
+        {start:'11:00',ratio:0.053372},{start:'11:30',ratio:0.053372},{start:'12:00',ratio:0.04505},{start:'12:30',ratio:0.039598},
+        {start:'13:00',ratio:0.035007},{start:'13:30',ratio:0.036729},{start:'14:00',ratio:0.028981},{start:'14:30',ratio:0.030416},
+        {start:'15:00',ratio:0.033572},{start:'15:30',ratio:0.033286},{start:'16:00',ratio:0.038164},{start:'16:30',ratio:0.042181},
+        {start:'17:00',ratio:0.044476},{start:'17:30',ratio:0.042181},{start:'18:00',ratio:0.04132},{start:'18:30',ratio:0.032138},
+        {start:'19:00',ratio:0.037303},{start:'19:30',ratio:0.028694},{start:'20:00',ratio:0.012626},{start:'20:30',ratio:0.007461},
+        {start:'21:00',ratio:0.008034},{start:'21:30',ratio:0.009182},
+      ]},
+    };
+    // FBI看板1796001 品牌级每日订单 (2026.8.8-9.13)
+    let brandDailyData = {
+      '成山农场': {'2026-08-08':1386,'2026-08-09':1424,'2026-08-10':1261,'2026-08-11':1080,'2026-08-12':1186,'2026-08-13':1175,'2026-08-14':1182,'2026-08-15':1522,'2026-08-16':1546,'2026-08-17':1371,'2026-08-18':1469,'2026-08-19':1319,'2026-08-20':1312,'2026-08-21':1506,'2026-08-22':1867,'2026-08-23':1851,'2026-08-24':1525,'2026-08-25':1582,'2026-08-26':1517,'2026-08-27':1582,'2026-08-28':1418,'2026-08-29':1574,'2026-08-30':1762,'2026-08-31':1260,'2026-09-01':1395,'2026-09-02':1367,'2026-09-03':1361,'2026-09-04':1278,'2026-09-05':1692,'2026-09-06':1800,'2026-09-07':658,'2026-09-08':767,'2026-09-09':956,'2026-09-10':774,'2026-09-11':649,'2026-09-12':843,'2026-09-13':911,'2026-09-14':1368,'2026-09-15':1405,'2026-09-16':1321},
+    };
+
+    // FBI DataMate 各门店 单均仓T (2026.9.7-9.16) 单位：分钟
+    let warehouseTData = {
+      '龙湖天街店': {
+        '2026-09-07': 11.18, '2026-09-08': 37.18, '2026-09-09': 23.95,
+        '2026-09-10': 20.18, '2026-09-11': 14.45, '2026-09-12': 19.07,
+        '2026-09-13': 36.65, '2026-09-14': 9.99, '2026-09-15': 12.39,
+        '2026-09-16': 9.31,
+      },
+    };
+
+    // Open-Meteo 天气预报 (西安 34.26,108.94) 更新于 2026-09-17
+    const staticWeatherData = {
+      '西安': [
+        {date:'2026-09-17',desc:'多云',temp:'16~25°C'},
+        {date:'2026-09-18',desc:'密毛雨',temp:'18~21°C'},
+        {date:'2026-09-19',desc:'毛雨',temp:'18~25°C'},
+        {date:'2026-09-20',desc:'微毛雨',temp:'19~22°C'},
+        {date:'2026-09-21',desc:'微阵雨',temp:'19~22°C'},
+        {date:'2026-09-22',desc:'阴',temp:'19~24°C'},
+        {date:'2026-09-23',desc:'微毛雨',temp:'18~24°C'},
+      ],
+    };
+
+    const brands = ref([
+      {
+        name: '成山农场',
+        stores: [
+          { name: '龙湖天街店', city: '西安', businessStart: '07:00', businessEnd: '22:00' },
+        ]
+      },
+    ]);
+
+    const selectedBrandIdx = ref(0);
+    const selectedStoreIdx = ref(0);
+    const showSettings = ref(false);
+
+    const currentBrandStores = computed(() => {
+      return brands.value[selectedBrandIdx.value]?.stores || [];
+    });
+
+    const selectedStore = computed(() => {
+      return currentBrandStores.value[selectedStoreIdx.value] || null;
+    });
+
+    // 当前门店的仓T数据
+    const currentWarehouseT = computed(() => {
+      const storeName = selectedStore.value?.name || '';
+      return warehouseTData[storeName] || {};
+    });
+
+    // 门店级 localStorage key 前缀，确保不同门店数据隔离
+    const storagePrefix = computed(() => {
+      const brand = brands.value[selectedBrandIdx.value]?.name || '';
+      const store = selectedStore.value?.name || '';
+      return `${brand}_${store}_`;
+    });
+
+    const storeCoords = computed(() => {
+      const store = selectedStore.value;
+      if (!store || !store.city) return null;
+      return cityCoords[store.city] || null;
+    });
+
+    // ==================== 时间段生成 ====================
+    function generateTimeSlots(start, end) {
+      const [sh, sm] = start.split(':').map(Number);
+      const [eh, em] = end.split(':').map(Number);
+      const slots = [];
+      let cur = sh * 60 + sm;
+      const endMin = eh * 60 + em;
+      while (cur < endMin) {
+        const sH = String(Math.floor(cur / 60)).padStart(2, '0');
+        const sM = String(cur % 60).padStart(2, '0');
+        const next = cur + 30;
+        const eH = String(Math.floor(next / 60)).padStart(2, '0');
+        const eM = String(next % 60).padStart(2, '0');
+        slots.push({
+          start: `${sH}:${sM}`,
+          end: `${eH}:${eM}`,
+          label: `${sH}:${sM}-${eH}:${eM}`,
+        });
+        cur = next;
+      }
+      return slots;
+    }
+
+    const timeSlots = computed(() => {
+      const store = selectedStore.value;
+      if (!store) return [];
+      return generateTimeSlots(store.businessStart, store.businessEnd);
+    });
+
+    // ==================== 天气数据 ====================
+    const weatherData = ref(null);
+    const weatherLoading = ref(false);
+    const weatherError = ref('');
+    const selectedDate = ref('');
+
+    const wmoMap = {
+      0: { label: '晴', color: '#F59E0B', bg: '#FEF3C7' },
+      1: { label: '大部晴', color: '#F59E0B', bg: '#FEF3C7' },
+      2: { label: '多云', color: '#64748B', bg: '#F1F5F9' },
+      3: { label: '阴', color: '#64748B', bg: '#F1F5F9' },
+      45: { label: '雾', color: '#94A3B8', bg: '#F1F5F9' },
+      48: { label: '雾凇', color: '#94A3B8', bg: '#F1F5F9' },
+      51: { label: '微毛雨', color: '#3B82F6', bg: '#DBEAFE' },
+      53: { label: '毛雨', color: '#3B82F6', bg: '#DBEAFE' },
+      55: { label: '密毛雨', color: '#2563EB', bg: '#DBEAFE' },
+      56: { label: '冻毛雨', color: '#3B82F6', bg: '#DBEAFE' },
+      57: { label: '密冻雨', color: '#2563EB', bg: '#DBEAFE' },
+      61: { label: '微雨', color: '#3B82F6', bg: '#DBEAFE' },
+      63: { label: '雨', color: '#2563EB', bg: '#DBEAFE' },
+      65: { label: '大雨', color: '#1D4ED8', bg: '#DBEAFE' },
+      66: { label: '冻雨', color: '#3B82F6', bg: '#DBEAFE' },
+      67: { label: '密冻雨', color: '#1D4ED8', bg: '#DBEAFE' },
+      71: { label: '微雪', color: '#06B6D4', bg: '#CFFAFE' },
+      73: { label: '雪', color: '#06B6D4', bg: '#CFFAFE' },
+      75: { label: '大雪', color: '#0891B2', bg: '#CFFAFE' },
+      77: { label: '雪粒', color: '#06B6D4', bg: '#CFFAFE' },
+      80: { label: '微阵雨', color: '#3B82F6', bg: '#DBEAFE' },
+      81: { label: '阵雨', color: '#2563EB', bg: '#DBEAFE' },
+      82: { label: '强阵雨', color: '#1D4ED8', bg: '#DBEAFE' },
+      85: { label: '阵雪', color: '#06B6D4', bg: '#CFFAFE' },
+      86: { label: '强阵雪', color: '#0891B2', bg: '#CFFAFE' },
+      95: { label: '雷暴', color: '#7C3AED', bg: '#EDE9FE' },
+      96: { label: '雷暴冰雹', color: '#7C3AED', bg: '#EDE9FE' },
+      99: { label: '强雷暴', color: '#6D28D9', bg: '#EDE9FE' },
+    };
+
+    function weatherInfo(code) {
+      return wmoMap[code] || { label: '—', color: '#64748B', bg: '#F1F5F9' };
+    }
+
+    function getDayOfWeek(dateStr) {
+      const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      const d = new Date(dateStr + 'T00:00:00');
+      return days[d.getDay()];
+    }
+
+    const dailyWeather = computed(() => {
+      if (!weatherData.value) return [];
+      const d = weatherData.value.daily;
+      const today = formatDateLocal(new Date());
+      return d.time
+        .map((date, i) => ({
+          date,
+          dayOfWeek: getDayOfWeek(date),
+          weatherCode: d.weather_code[i],
+          tempMax: d.temperature_2m_max[i],
+          tempMin: d.temperature_2m_min[i],
+          precipProb: d.precipitation_probability_max ? d.precipitation_probability_max[i] : 0,
+        }))
+        .filter(w => w.date >= today)
+        .slice(0, 7);
+    });
+
+    const hourlyWeather = computed(() => {
+      if (!weatherData.value || !selectedDate.value) return [];
+      const h = weatherData.value.hourly;
+      const store = selectedStore.value;
+      const bs = store ? parseInt(store.businessStart.split(':')[0]) : 0;
+      const be = store ? parseInt(store.businessEnd.split(':')[0]) : 24;
+      return h.time.map((time, i) => ({
+        time,
+        hour: time.split('T')[1] || time,
+        temp: h.temperature_2m[i],
+        precipProb: h.precipitation_probability ? h.precipitation_probability[i] : 0,
+        weatherCode: h.weather_code[i],
+      })).filter(w => {
+        if (!w.time.startsWith(selectedDate.value)) return false;
+        const hr = parseInt(w.hour.split(':')[0]);
+        return hr >= bs && hr < be;
+      });
+    });
+
+    async function fetchWeather() {
+      const coords = storeCoords.value;
+      if (!coords) {
+        weatherError.value = '未找到城市坐标，请在门店设置中选择城市';
+        return;
+      }
+      weatherLoading.value = true;
+      weatherError.value = '';
+      try {
+        // 预报+历史（past_days=22 覆盖表格全部日期+上周同期，forecast_days=7 当日+未来6天=近7天）
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}` +
+          `&hourly=temperature_2m,precipitation_probability,weather_code` +
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
+          `&timezone=Asia%2FShanghai&past_days=22&forecast_days=7`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('API返回错误');
+        weatherData.value = await res.json();
+        const dates = weatherData.value.daily.time;
+        if (dates.length && !dates.includes(selectedDate.value)) {
+          const todayStr = formatDateLocal(new Date());
+          selectedDate.value = dates.includes(todayStr) ? todayStr : dates[dates.length - 7] || dates[0];
+        }
+      } catch (e) {
+        weatherError.value = '天气数据获取失败，请检查网络连接';
+        console.error(e);
+      } finally {
+        weatherLoading.value = false;
+      }
+    }
+
+    // 按日期查天气（合并预报+历史）
+    function getWeatherForDate(dateStr) {
+      if (!weatherData.value) return null;
+      const idx = weatherData.value.daily.time.indexOf(dateStr);
+      if (idx < 0) return null;
+      return {
+        code: weatherData.value.daily.weather_code[idx],
+        max: weatherData.value.daily.temperature_2m_max[idx],
+        min: weatherData.value.daily.temperature_2m_min[idx],
+      };
+    }
+    function getLastWeekDateStr(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      d.setDate(d.getDate() - 7);
+      return formatDateLocal(d);
+    }
+
+    // ==================== 订单预估 ====================
+    const forecastStartDate = ref('');
+    const forecastEndDate = ref('');
+    const dailyForecasts = ref([]);
+
+    const excelFileName = ref('');
+    const excelRows = ref([]);
+    const excelColumns = ref([]);
+    const timeColumnName = ref('');
+    const excelError = ref('');
+    const excelDailyTotals = ref({});
+
+    const hourlyDistribution = ref([]);
+
+    // 默认分布（成山农场用门店级真实数据，其他品牌用超市典型模式）
+    function getDefaultDistribution(slots) {
+      if (!slots.length) return [];
+      const storeName = selectedStore.value?.name;
+      const brandName = brands.value[selectedBrandIdx.value]?.name;
+      // 按选中日期挑选工作日/周末分布；兼容旧版扁平数组（Excel导入产出）
+      const distArr = (obj) => {
+        if (Array.isArray(obj)) return obj;
+        if (obj && typeof obj === 'object') {
+          const d = selectedDate.value;
+          let isWeekend = false;
+          if (d) { const dt = new Date(d + 'T00:00:00'); const day = dt.getDay(); isWeekend = (day === 0 || day === 6); }
+          return isWeekend ? obj.weekend : obj.weekday;
+        }
+        return null;
+      };
+      // 汇总 — 使用品牌级数据
+      const bArr = brandDistData[brandName] ? distArr(brandDistData[brandName]) : null;
+      if (storeName === '汇总' && brandName && bArr && bArr.length === slots.length) {
+        return slots.map((slot, i) => ({
+          ...slot, count: 0, ratio: bArr[i]?.ratio || 0,
+        }));
+      }
+      // 门店级真实拣货单分布数据
+      const sArr = storeDistData[storeName] ? distArr(storeDistData[storeName]) : null;
+      if (storeName && sArr && sArr.length === slots.length) {
+        return slots.map((slot, i) => ({
+          ...slot, count: 0, ratio: sArr[i]?.ratio || 0,
+        }));
+      }
+      const weights = slots.map(slot => {
+        const [h, m] = slot.start.split(':').map(Number);
+        const hour = h + m / 60;
+        let w = 0;
+        if (hour < 8) w = 0.3;
+        else if (hour < 9.5) w = 0.7;
+        else if (hour < 12) w = 1.0;
+        else if (hour < 14) w = 0.55;
+        else if (hour < 16) w = 0.45;
+        else if (hour < 17) w = 0.6;
+        else if (hour < 19) w = 0.95;
+        else if (hour < 20.5) w = 0.5;
+        else w = 0.25;
+        return w;
+      });
+      const total = weights.reduce((a, b) => a + b, 0);
+      return slots.map((slot, i) => ({
+        ...slot,
+        count: 0,
+        ratio: total > 0 ? weights[i] / total : 0,
+      }));
+    }
+
+    // 选中日期的预估单量
+    const selectedDayForecast = computed(() => {
+      const item = dailyForecasts.value.find(d => d.date === selectedDate.value);
+      return item ? (item.forecast || 0) : 0;
+    });
+
+    // 时段预估拆分
+    const hourlyForecastData = computed(() => {
+      const forecast = selectedDayForecast.value;
+      return hourlyDistribution.value.map(d => ({
+        ...d,
+        forecast: Math.round(forecast * d.ratio),
+      }));
+    });
+
+    // 本地日期格式化（避免 toISOString 的 UTC 时区偏移）
+    function formatDateLocal(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    const totalLastWeekActual = computed(() => {
+      return dailyForecasts.value.reduce((sum, d) => sum + (d.lastWeekActual || 0), 0);
+    });
+
+    const totalForecast = computed(() => {
+      return dailyForecasts.value.reduce((sum, d) => sum + (d.forecast || 0), 0);
+    });
+
+    const totalActualOrders = computed(() => {
+      return dailyForecasts.value.reduce((sum, d) => sum + (d.actualOrders || 0), 0);
+    });
+
+    const avgWarehouseT = computed(() => {
+      const wt = currentWarehouseT.value;
+      const vals = dailyForecasts.value.map(d => wt[d.date]).filter(v => v != null);
+      return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) + '′' : '—';
+    });
+
+    const totalSystemForecast = computed(() => {
+      return dailyForecasts.value.reduce((sum, d) => sum + (d.systemForecast || 0), 0);
+    });
+
+    function getYesterdayActual(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      d.setDate(d.getDate() - 1);
+      const yStr = formatDateLocal(d);
+      return excelDailyTotals.value[yStr] ?? null;
+    }
+
+    // 环比：过去日期用实际订单，当日及未来用预估订单 vs 昨日实际（负值红色）
+    function getEffectiveForecast(d) {
+      return d.forecast || d.systemForecast || 0;
+    }
+
+    function getDodValue(d) {
+      // 过去日期用实际订单，当日及未来用预估
+      return isPastDate(d.date) ? d.actualOrders : getEffectiveForecast(d);
+    }
+
+    function getDodColor(d) {
+      const val = getDodValue(d);
+      const yesterday = getYesterdayActual(d.date);
+      if (yesterday === null || yesterday === 0 || !val) return 'var(--color-muted)';
+      const ratio = val / yesterday;
+      if (ratio < 1) return 'var(--color-red)';
+      if (ratio > 1.05) return 'var(--color-green)';
+      return 'var(--color-muted)';
+    }
+
+    function formatDod(d) {
+      const val = getDodValue(d);
+      const yesterday = getYesterdayActual(d.date);
+      if (yesterday === null || yesterday === 0 || !val) return '—';
+      const pct = ((val - yesterday) / yesterday * 100).toFixed(1);
+      const sign = val >= yesterday ? '+' : '';
+      return `${sign}${pct}%`;
+    }
+
+    // 同比：过去日期用实际订单，当日及未来用预估订单
+    function isPastDate(dateStr) {
+      const today = formatDateLocal(new Date());
+      return dateStr < today;
+    }
+
+    function getYoyValue(d) {
+      // 过去日期用实际订单，当日及未来用预估
+      return isPastDate(d.date) ? d.actualOrders : getEffectiveForecast(d);
+    }
+
+    function getYoyColor(d) {
+      const val = getYoyValue(d);
+      if (d.lastWeekActual === null || d.lastWeekActual === 0 || !val) return 'var(--color-muted)';
+      const ratio = val / d.lastWeekActual;
+      if (ratio < 1) return 'var(--color-red)';
+      if (ratio > 1.05) return 'var(--color-green)';
+      return 'var(--color-muted)';
+    }
+
+    function formatYoy(d) {
+      const val = getYoyValue(d);
+      if (d.lastWeekActual === null || !d.lastWeekActual || !val) return '—';
+      const pct = ((val - d.lastWeekActual) / d.lastWeekActual * 100).toFixed(1);
+      const sign = val >= d.lastWeekActual ? '+' : '';
+      return `${sign}${pct}%`;
+    }
+
+    // ==================== 保存预估 & 变更日志 & 准确率 ====================
+    const showChangeLog = ref(false);
+    const changeLog = ref([]);
+    const lastSaveTime = ref('');
+    let savedForecastsMap = {}; // 保存时的快照，用于检测变更
+
+    // ==================== 指标注解 ====================
+    const showAnnotation = ref(false);
+    const annotationTitle = ref('');
+    const annotationDesc = ref('');
+    const metricAnnotations = {
+      '上周同期天气': '7天前的历史天气数据，来源：Open-Meteo API（past_days）。用于参考去年同期天气对订单的影响。',
+      '当日天气': '当天的天气预报数据，来源：Open-Meteo API。包含天气状况、最高/最低温度、降水概率。',
+      '上周同期实际': '7天前的实际订单数，来源：导入的拣货单Excel汇总。作为环比/同比的基准参考值。',
+      '实际订单': '当天的实际订单数，来源：FBI DataMate。通常在次日更新，历史日期可查看，未来日期显示"—"。',
+      '系统预估': '系统自动生成的订单预估值，来源：FBI DataMate 算法模型。基于历史数据、天气、星期等因素综合计算。',
+      '预估订单': '最终采用的预估值。优先级：用户手动输入 > 系统预估 > 上周同期实际。未填写时自动回退到系统预估。',
+      '环比': '当日 vs 前一天实际订单的变化百分比。过去日期使用实际订单，当日及未来使用预估订单。公式：(当日订单 - 昨日实际) / 昨日实际 × 100%。无前日数据时显示"—"。',
+      '同比': '与上周同期对比的变化百分比。过去日期：(实际订单 - 上周同期实际) / 上周同期实际 × 100%；当日及未来日期：(预估订单 - 上周同期实际) / 上周同期实际 × 100%。当分子=分母时显示"+0.0%"。',
+      '预估准确率': '预估订单 / 实际订单 × 100%。未填写预估订单时显示0%。需实际订单数据才能计算。',
+      '履约仓T': '单均履约仓T（单位：分钟），来源：FBI DataMate 看板品牌级数据。反映从接单到拣货完成的平均耗时，数值越低效率越高。',
+    };
+    function openAnnotation(metric) {
+      annotationTitle.value = metric;
+      annotationDesc.value = metricAnnotations[metric] || '暂无说明';
+      showAnnotation.value = true;
+    }
+    function closeAnnotation() {
+      showAnnotation.value = false;
+    }
+
+    function saveForecastsManual() {
+      const now = new Date();
+      const timeStr = formatDateLocal(now) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+      
+      const data = {
+        saveDate: timeStr,
+        brand: brands.value[selectedBrandIdx.value]?.name || '',
+        store: selectedStore.value?.name || '',
+        forecasts: dailyForecasts.value.map(d => ({ date: d.date, forecast: d.forecast || 0 })),
+      };
+      
+      try {
+        localStorage.setItem(storagePrefix.value + 'orderForecast_save', JSON.stringify(data));
+        lastSaveTime.value = timeStr;
+        
+        // 记录变更日志
+        dailyForecasts.value.forEach(d => {
+          const oldVal = savedForecastsMap[d.date];
+          const newVal = d.forecast || 0;
+          if (oldVal !== undefined && oldVal !== newVal) {
+            recordChange(d.date, oldVal, newVal);
+          }
+        });
+        
+        // 更新快照
+        savedForecastsMap = {};
+        dailyForecasts.value.forEach(d => { savedForecastsMap[d.date] = d.forecast || 0; });
+        
+        alert('预估已保存！');
+      } catch(e) { 
+        console.error('保存失败:', e);
+        alert('保存失败，请重试');
+      }
+    }
+
+    function recordChange(date, oldVal, newVal) {
+      if (oldVal === newVal) return;
+      const now = new Date();
+      const time = formatDateLocal(now) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+      changeLog.value.unshift({ date, oldValue: oldVal || 0, newValue: newVal || 0, time });
+      if (changeLog.value.length > 200) changeLog.value.pop();
+      try { localStorage.setItem(storagePrefix.value + 'orderForecast_log', JSON.stringify(changeLog.value)); } catch(e) {}
+    }
+
+    function loadSavedForecasts() {
+      try {
+        const raw = localStorage.getItem(storagePrefix.value + 'orderForecast_save');
+        if (raw) {
+          const data = JSON.parse(raw);
+          const currentStore = selectedStore.value?.name || '';
+          const currentBrand = brands.value[selectedBrandIdx.value]?.name || '';
+          // 门店/品牌不匹配时跳过加载，避免跨门店数据污染
+          if (data.store !== currentStore || data.brand !== currentBrand) {
+            console.log('localStorage数据门店不匹配，跳过加载（已保存:', data.brand + '/' + data.store, '当前:', currentBrand + '/' + currentStore + '）');
+            return;
+          }
+          lastSaveTime.value = data.saveDate || '';
+          // 保存所有已保存的预估值到全局 map
+          if (data.forecasts) {
+            data.forecasts.forEach(f => { savedForecastsMap[f.date] = f.forecast || 0; });
+          }
+          // 恢复到当前数组
+          if (data.forecasts && dailyForecasts.value.length) {
+            const savedMap = {};
+            data.forecasts.forEach(f => { savedMap[f.date] = f.forecast; });
+            dailyForecasts.value.forEach(d => {
+              if (savedMap[d.date] !== undefined) d.forecast = savedMap[d.date];
+            });
+          }
+        }
+        const logRaw = localStorage.getItem(storagePrefix.value + 'orderForecast_log');
+        if (logRaw) changeLog.value = JSON.parse(logRaw);
+      } catch(e) { console.error('加载保存数据失败:', e); }
+    }
+
+    // 准确率：预估订单 / 实际订单 × 100%，未填预估则为0%
+    function getForecastAccuracy(d) {
+      const eff = d.forecast || 0;
+      const actual = d.actualOrders !== undefined ? d.actualOrders : excelDailyTotals.value[d.date];
+      if (!actual || actual === 0) return null;
+      if (!eff) return 0;
+      return (eff / actual) * 100;
+    }
+
+    function getOverallAccuracy() {
+      let totalForecast = 0, totalActual = 0;
+      dailyForecasts.value.forEach(d => {
+        const actual = d.actualOrders !== undefined ? d.actualOrders : excelDailyTotals.value[d.date];
+        if (actual && actual > 0) {
+          totalForecast += d.forecast || 0;
+          totalActual += actual;
+        }
+      });
+      if (totalActual === 0) return null;
+      if (!totalForecast) return 0;
+      return (totalForecast / totalActual) * 100;
+    }
+
+    function formatAccuracy(val) {
+      if (val === null) return '—';
+      return val.toFixed(1) + '%';
+    }
+
+    function getAccuracyColor(accuracy) {
+      if (accuracy === null) return 'var(--color-muted)';
+      if (accuracy > 120 || accuracy < 80) return 'var(--color-red)';
+      if (accuracy >= 95 && accuracy <= 105) return 'var(--color-green)';
+      return 'var(--color-yellow)';
+    }
+
+    function exportDailyForecast() {
+      const brand = brands.value[selectedBrandIdx.value]?.name || '';
+      const store = selectedStore.value?.name || '';
+      const rows = [];
+      rows.push([brand + ' ' + store + ' 订单预估表']);
+      rows.push(['导出时间: ' + formatDateLocal(new Date()) + ' ' + String(new Date().getHours()).padStart(2,'0') + ':' + String(new Date().getMinutes()).padStart(2,'0')]);
+      rows.push([]);
+      rows.push(['日期', '星期', '上周同期实际', '实际订单', '系统预估', '预估订单', '环比', '同比', '预估准确率']);
+      dailyForecasts.value.forEach(d => {
+        const dod = formatDod(d);
+        const yoy = formatYoy(d);
+        const acc = getForecastAccuracy(d);
+        rows.push([d.date, d.dayOfWeek, d.lastWeekActual ?? '—', d.actualOrders ?? '—', d.systemForecast ?? '—', d.forecast, dod, yoy, acc !== null ? acc.toFixed(1) + '%' : '—']);
+      });
+      rows.push([]);
+      rows.push(['合计']);
+      const tLastWeek = totalLastWeekActual.value || '—';
+      const tActual = totalActualOrders.value || '—';
+      const tSystem = totalSystemForecast.value || '—';
+      const tForecast = totalForecast.value || 0;
+      const tOverallAcc = getOverallAccuracy();
+      rows.push(['', '', tLastWeek, tActual, tSystem, tForecast, '', '', tOverallAcc !== null ? tOverallAcc.toFixed(1) + '%' : '—']);
+      rows.push([]);
+      rows.push(['变更日志']);
+      rows.push(['时间', '日期', '原值', '新值', '变化']);
+      changeLog.value.forEach(log => {
+        rows.push([log.time, log.date, log.oldValue, log.newValue, log.newValue - log.oldValue]);
+      });
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
+      XLSX.utils.book_append_sheet(wb, ws, '预估+日志');
+      XLSX.writeFile(wb, brand + store + '_预估_' + formatDateLocal(new Date()) + '.xlsx');
+    }
+
+
+    function generateDailyForecasts() {
+      if (!forecastStartDate.value || !forecastEndDate.value) return;
+      const start = new Date(forecastStartDate.value);
+      const end = new Date(forecastEndDate.value);
+      if (start > end) return;
+      
+      // 从当前数组保留旧值
+      const existing = {};
+      dailyForecasts.value.forEach(d => { existing[d.date] = d.forecast || 0; });
+      
+      // 从全局保存快照恢复所有已保存的预估值（确保切换日期范围后数据不丢失）
+      Object.keys(savedForecastsMap).forEach(date => {
+        if (existing[date] === undefined) {
+          existing[date] = savedForecastsMap[date];
+        }
+      });
+      
+      const forecasts = [];
+      const cur = new Date(start);
+      while (cur <= end) {
+        const dateStr = formatDateLocal(cur);
+        const lwActual = getLastWeekActual(dateStr);
+        forecasts.push({
+          date: dateStr,
+          dayOfWeek: getDayOfWeek(dateStr),
+          lastWeekActual: lwActual,
+          systemForecast: lwActual,
+          actualOrders: excelDailyTotals.value[dateStr] ?? null,
+          forecast: existing[dateStr] !== undefined ? existing[dateStr] : 0,
+        });
+        cur.setDate(cur.getDate() + 1);
+      }
+      dailyForecasts.value = forecasts;
+    }
+
+    function getLastWeekActual(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      d.setDate(d.getDate() - 7);
+      const lwStr = formatDateLocal(d);
+      return excelDailyTotals.value[lwStr] ?? null;
+    }
+
+    function updateLastWeekActuals() {
+      dailyForecasts.value.forEach(d => {
+        d.lastWeekActual = getLastWeekActual(d.date);
+      });
+    }
+
+    function fillWithActuals() {
+      dailyForecasts.value.forEach(d => {
+        if (d.lastWeekActual !== null) {
+          d.forecast = d.lastWeekActual;
+        }
+      });
+    }
+
+    // ==================== Excel 解析 ====================
+    function parseDateTime(value) {
+      if (value instanceof Date) return value;
+      if (typeof value === 'number' && value > 30000) {
+        // Excel serial date
+        return new Date((value - 25569) * 86400 * 1000);
+      }
+      if (typeof value === 'number' && value > 0 && value < 1) {
+        // Time only fraction (e.g. 0.5 = noon)
+        const totalSec = value * 86400;
+        const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        const d = new Date();
+        d.setHours(h, m, 0, 0);
+        return d;
+      }
+      if (typeof value === 'string') {
+        const d = new Date(value);
+        if (!isNaN(d) && value.length > 5) return d;
+        const m = value.match(/(\d{4})\D(\d{1,2})\D(\d{1,2})[T\s]+(\d{1,2}):(\d{2})/);
+        if (m) return new Date(m[1], m[2]-1, m[3], m[4], m[5]);
+        const m2 = value.match(/(\d{1,2}):(\d{2})/);
+        if (m2) {
+          const d = new Date();
+          d.setHours(parseInt(m2[1]), parseInt(m2[2]), 0, 0);
+          return d;
+        }
+      }
+      return null;
+    }
+
+    function getSlotIndex(hours, minutes, slots) {
+      const tMin = hours * 60 + minutes;
+      for (let i = 0; i < slots.length; i++) {
+        const [sh, sm] = slots[i].start.split(':').map(Number);
+        const [eh, em] = slots[i].end.split(':').map(Number);
+        if (tMin >= sh * 60 + sm && tMin < eh * 60 + em) return i;
+      }
+      return -1;
+    }
+
+    async function handleExcelUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      excelFileName.value = file.name;
+      excelError.value = '';
+      try {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { cellDates: true });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { raw: true, defval: null });
+        if (!rows.length) {
+          excelError.value = 'Excel文件为空';
+          return;
+        }
+        excelRows.value = rows;
+        excelColumns.value = Object.keys(rows[0]);
+        const timeCol = excelColumns.value.find(c => /拣货下发|下发时间|dispatch/i.test(c))
+          || excelColumns.value.find(c => /时间|time|下单|创建|时刻|date|order/i.test(c));
+        if (timeCol) {
+          timeColumnName.value = timeCol;
+          processExcelData();
+        }
+      } catch (e) {
+        excelError.value = 'Excel解析失败: ' + e.message;
+        console.error(e);
+      }
+      event.target.value = '';
+    }
+
+    function processExcelData() {
+      if (!timeColumnName.value || !excelRows.value.length) return;
+      excelError.value = '';
+
+      // 自动检测门店名称列
+      const storeCol = excelColumns.value.find(c => /门店|store/i.test(c));
+
+      // 保留已有城市信息
+      const existingCity = {};
+      brands.value.forEach(b => {
+        b.stores.forEach(s => {
+          existingCity[s.name] = s.city;
+          if (!existingCity[b.name]) existingCity[b.name] = s.city;
+        });
+      });
+
+      // 解析每行：提取时间、品牌、门店
+      const parsed = excelRows.value.map(row => {
+        const dt = parseDateTime(row[timeColumnName.value]);
+        if (!dt) return null;
+        const sf = storeCol ? String(row[storeCol] || '') : '';
+        const m = sf.match(/^(.+?)[（(](.+?)[)）]$/);
+        const brand = m ? m[1].trim() : (sf.trim() || '未知品牌');
+        const store = m ? m[2].trim() : '';
+        return { dt, brand, store };
+      }).filter(r => r);
+
+      if (!parsed.length) {
+        excelError.value = '未能解析任何时间数据，请检查时间列';
+        return;
+      }
+
+      const slotTpl = generateTimeSlots('07:00', '22:00');
+      const mkGroup = () => ({ weekday: { slots: new Array(30).fill(0), daily: {}, total: 0 }, weekend: { slots: new Array(30).fill(0), daily: {}, total: 0 } });
+      const storeGroups = {};
+      const brandGroups = {};
+
+      parsed.forEach(({ dt, brand, store }) => {
+        const dow = dt.getDay();
+        const period = (dow === 0 || dow === 6) ? 'weekend' : 'weekday';
+        if (!brandGroups[brand]) brandGroups[brand] = { ...mkGroup(), weekday: { ...mkGroup().weekday, stores: new Set() }, weekend: { ...mkGroup().weekend, stores: new Set() } };
+        // Fix: ensure stores set on both
+        if (!brandGroups[brand]._stores) brandGroups[brand]._stores = new Set();
+        const bg = brandGroups[brand][period];
+        const ds = formatDateLocal(dt);
+        bg.daily[ds] = (bg.daily[ds] || 0) + 1;
+        const min = dt.getHours() * 60 + dt.getMinutes();
+        if (min >= 420 && min < 1320) { bg.slots[Math.floor((min - 420) / 30)]++; bg.total++; }
+        brandGroups[brand]._stores.add(store);
+        if (store) {
+          if (!storeGroups[store]) storeGroups[store] = { ...mkGroup(), brand };
+          const sg = storeGroups[store][period];
+          sg.daily[ds] = (sg.daily[ds] || 0) + 1;
+          if (min >= 420 && min < 1320) { sg.slots[Math.floor((min - 420) / 30)]++; sg.total++; }
+        }
+      });
+
+      // 构建新数据结构（工作日/周末分开）
+      const newBrands = [];
+      const newStoreDist = {};
+      const newStoreDaily = {};
+      const newBrandDist = {};
+      const newBrandDaily = {};
+
+      function buildDistArr(grp) {
+        return slotTpl.map((s, i) => ({ start: s.start, ratio: grp.total > 0 ? grp.slots[i] / grp.total : 0 }));
+      }
+      function buildTwoPatterns(data) {
+        const wd = data.weekday, we = data.weekend;
+        return {
+          weekday: buildDistArr(wd.total >= 30 ? wd : (we.total >= 30 ? we : wd)),
+          weekend: buildDistArr(we.total >= 30 ? we : (wd.total >= 30 ? wd : we)),
+        };
+      }
+
+      for (const [brandName, bg] of Object.entries(brandGroups)) {
+        newBrandDist[brandName] = buildTwoPatterns(bg);
+        // 品牌级每日汇总（合并工作日和周末）
+        const bd = {};
+        for (const [d, c] of Object.entries(bg.weekend.daily)) if (c > 50) bd[d] = c;
+        for (const [d, c] of Object.entries(bg.weekday.daily)) { bd[d] = (bd[d] || 0) + c; if (bd[d] < 50) delete bd[d]; }
+        newBrandDaily[brandName] = bd;
+
+        const stores = [];
+        for (const storeName of bg._stores) {
+          const sg = storeGroups[storeName];
+          if (!sg || (sg.weekday.total + sg.weekend.total) < 30) continue;
+          newStoreDist[storeName] = buildTwoPatterns(sg);
+          const sd = {};
+          for (const [d, c] of Object.entries(sg.weekend.daily)) sd[d] = c;
+          for (const [d, c] of Object.entries(sg.weekday.daily)) sd[d] = (sd[d] || 0) + c;
+          for (const [d] of Object.entries(sd)) if (sd[d] < 10) delete sd[d];
+          newStoreDaily[storeName] = sd;
+          stores.push({ name: storeName, city: existingCity[storeName] || existingCity[brandName] || '北京', businessStart: '07:00', businessEnd: '22:00' });
+        }
+        newBrands.push({ name: brandName, stores });
+      }
+
+      // 更新全部数据
+      brands.value = newBrands;
+      storeDistData = newStoreDist;
+      storeDailyData = newStoreDaily;
+      brandDistData = newBrandDist;
+      brandDailyData = newBrandDaily;
+
+      selectedBrandIdx.value = 0;
+      selectedStoreIdx.value = 0;
+      onStoreChange();
+
+      nextTick(() => {
+        updateDistributionChart();
+        updateSchedulingChart();
+      });
+    }
+
+    // ==================== 人力排班 ====================
+    const efficiencyPerHour = ref(4.5);
+    const staffList = ref([]);
+
+    // 员工池
+    const employeePool = ref([]);
+    const showPoolModal = ref(false);
+    const editingPoolIdx = ref(-1);
+    const newPoolEmployee = reactive({
+      name: '',
+      efficiency: 2,
+      timeStart: '',
+      timeEnd: '',
+      availableSlots: {},
+      availableDays: [],
+      hireDate: '',
+    });
+
+    function initStaffShifts(staff) {
+      const shifts = {};
+      timeSlots.value.forEach(slot => {
+        shifts[slot.label] = false;
+      });
+      staff.shifts = shifts;
+      staff.quickStart = '';
+      staff.quickEnd = '';
+    }
+
+    function addStaff() {
+      const staff = reactive({ name: '', shifts: {}, quickStart: '', quickEnd: '', isTemp: true, efficiency: 0 });
+      timeSlots.value.forEach(slot => {
+        staff.shifts[slot.label] = false;
+      });
+      staffList.value.push(staff);
+    }
+
+    function removeStaff(idx) {
+      staffList.value.splice(idx, 1);
+    }
+
+    function applyQuickSchedule(idx) {
+      const staff = staffList.value[idx];
+      if (!staff.quickStart || !staff.quickEnd) return;
+      const [sh, sm] = staff.quickStart.split(':').map(Number);
+      const [eh, em] = staff.quickEnd.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin = eh * 60 + em;
+      timeSlots.value.forEach(slot => {
+        const [ssh, ssm] = slot.start.split(':').map(Number);
+        const sMin = ssh * 60 + ssm;
+        if (sMin >= startMin && sMin < endMin) {
+          staff.shifts[slot.label] = true;
+        }
+      });
+    }
+
+    function clearStaffShifts(idx) {
+      const staff = staffList.value[idx];
+      Object.keys(staff.shifts).forEach(k => { staff.shifts[k] = false; });
+      staff.quickStart = '';
+      staff.quickEnd = '';
+    }
+
+    function clearAllShifts() {
+      staffList.value.forEach(s => {
+        Object.keys(s.shifts).forEach(k => { s.shifts[k] = false; });
+        s.quickStart = '';
+        s.quickEnd = '';
+      });
+    }
+
+    function staffWorkHours(idx) {
+      const staff = staffList.value[idx];
+      const count = Object.values(staff.shifts).filter(v => v).length;
+      return (count * 0.5).toFixed(1) + 'h';
+    }
+
+    // ==================== 员工池管理 ====================
+    const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+    // 根据起止时间自动填充 availableSlots
+    function autoFillSlotsFromRange() {
+      const slots = {};
+      timeSlots.value.forEach(s => { slots[s.label] = false; });
+      if (!newPoolEmployee.timeStart || !newPoolEmployee.timeEnd) {
+        newPoolEmployee.availableSlots = slots;
+        return;
+      }
+      const [sh, sm] = newPoolEmployee.timeStart.split(':').map(Number);
+      const [eh, em] = newPoolEmployee.timeEnd.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin = eh * 60 + em;
+      timeSlots.value.forEach(slot => {
+        const [ssh, ssm] = slot.start.split(':').map(Number);
+        const sMin = ssh * 60 + ssm;
+        slots[slot.label] = (sMin >= startMin && sMin < endMin);
+      });
+      newPoolEmployee.availableSlots = slots;
+    }
+
+    // 单击切换某个时段的选中状态
+    function togglePoolSlot(slotLabel) {
+      newPoolEmployee.availableSlots[slotLabel] = !newPoolEmployee.availableSlots[slotLabel];
+    }
+
+    // 单击切换某个出勤日期的选中状态
+    function togglePoolDay(day) {
+      const idx = newPoolEmployee.availableDays.indexOf(day);
+      if (idx >= 0) {
+        newPoolEmployee.availableDays.splice(idx, 1);
+      } else {
+        newPoolEmployee.availableDays.push(day);
+      }
+    }
+
+    function resetNewPoolEmployee() {
+      newPoolEmployee.name = '';
+      newPoolEmployee.efficiency = 2;
+      newPoolEmployee.timeStart = '';
+      newPoolEmployee.timeEnd = '';
+      const slots = {};
+      timeSlots.value.forEach(s => { slots[s.label] = false; });
+      newPoolEmployee.availableSlots = slots;
+      newPoolEmployee.availableDays = [];
+      newPoolEmployee.hireDate = '';
+      editingPoolIdx.value = -1;
+    }
+
+    function addPoolEmployee() {
+      if (!newPoolEmployee.name.trim()) { alert('请输入员工姓名'); return; }
+      const hasSlot = Object.values(newPoolEmployee.availableSlots).some(v => v);
+      if (!hasSlot) { alert('请至少选择一个可出勤时段'); return; }
+
+      const empData = {
+        name: newPoolEmployee.name.trim(),
+        efficiency: newPoolEmployee.efficiency,
+        timeStart: newPoolEmployee.timeStart,
+        timeEnd: newPoolEmployee.timeEnd,
+        availableSlots: { ...newPoolEmployee.availableSlots },
+        availableDays: [...newPoolEmployee.availableDays],
+        hireDate: newPoolEmployee.hireDate,
+      };
+
+      if (editingPoolIdx.value >= 0) {
+        employeePool.value[editingPoolIdx.value] = empData;
+        cancelPoolEdit();
+      } else {
+        employeePool.value.push(empData);
+        resetNewPoolEmployee();
+      }
+      saveEmployeePool();
+    }
+
+    function removePoolEmployee(idx) {
+      if (!confirm('确认从员工池删除 ' + employeePool.value[idx].name + '？')) return;
+      employeePool.value.splice(idx, 1);
+      saveEmployeePool();
+    }
+
+    function editPoolEmployee(idx) {
+      const emp = employeePool.value[idx];
+      newPoolEmployee.name = emp.name;
+      newPoolEmployee.efficiency = emp.efficiency;
+      newPoolEmployee.timeStart = emp.timeStart || '';
+      newPoolEmployee.timeEnd = emp.timeEnd || '';
+      const slots = {};
+      timeSlots.value.forEach(s => { slots[s.label] = !!emp.availableSlots[s.label]; });
+      newPoolEmployee.availableSlots = slots;
+      newPoolEmployee.availableDays = emp.availableDays ? [...emp.availableDays] : [];
+      newPoolEmployee.hireDate = emp.hireDate || '';
+      editingPoolIdx.value = idx;
+    }
+
+    function cancelPoolEdit() {
+      resetNewPoolEmployee();
+    }
+
+    function selectAllPoolSlots() {
+      timeSlots.value.forEach(s => { newPoolEmployee.availableSlots[s.label] = true; });
+      newPoolEmployee.timeStart = timeSlots.value[0]?.start || '';
+      newPoolEmployee.timeEnd = timeSlots.value[timeSlots.value.length - 1]?.end || '';
+    }
+    function clearAllPoolSlots() {
+      timeSlots.value.forEach(s => { newPoolEmployee.availableSlots[s.label] = false; });
+      newPoolEmployee.timeStart = '';
+      newPoolEmployee.timeEnd = '';
+    }
+
+    function saveEmployeePool() {
+      try {
+        localStorage.setItem(storagePrefix.value + 'employee_pool', JSON.stringify(employeePool.value));
+      } catch (e) { console.error('保存员工池失败:', e); }
+    }
+    function loadEmployeePool() {
+      try {
+        const raw = localStorage.getItem(storagePrefix.value + 'employee_pool');
+        if (raw) employeePool.value = JSON.parse(raw);
+      } catch (e) { console.error('加载员工池失败:', e); }
+    }
+
+    // 初始化默认6名员工池成员
+    function initDefaultPoolEmployees() {
+      const allDays = [...weekDays];
+      const defs = [
+        { name: '李想', efficiency: 3, timeStart: '07:00', timeEnd: '22:00', availableDays: allDays, hireDate: '2025-01-01' },
+        { name: '王芳', efficiency: 2, timeStart: '07:00', timeEnd: '15:30', availableDays: allDays, hireDate: '2025-01-01' },
+        { name: '张伟', efficiency: 3, timeStart: '09:00', timeEnd: '17:30', availableDays: allDays, hireDate: '2025-01-01' },
+        { name: '赵敏', efficiency: 2, timeStart: '12:00', timeEnd: '21:30', availableDays: allDays, hireDate: '2025-01-01' },
+        { name: '陈强', efficiency: 1, timeStart: '07:00', timeEnd: '12:00', availableDays: allDays, hireDate: '2025-01-01' },
+        { name: '刘洋', efficiency: 2, timeStart: '15:00', timeEnd: '21:30', availableDays: allDays, hireDate: '2025-01-01' },
+      ];
+      employeePool.value = defs.map(d => {
+        const availableSlots = {};
+        const [sh, sm] = d.timeStart.split(':').map(Number);
+        const [eh, em] = d.timeEnd.split(':').map(Number);
+        const startMin = sh * 60 + sm;
+        const endMin = eh * 60 + em;
+        timeSlots.value.forEach(slot => {
+          const [ssh, ssm] = slot.start.split(':').map(Number);
+          availableSlots[slot.label] = (ssh * 60 + ssm >= startMin && ssh * 60 + ssm < endMin);
+        });
+        return { ...d, availableSlots };
+      });
+      saveEmployeePool();
+      console.log('[员工池] 已初始化6名默认员工');
+    }
+
+    // ==================== 智能排班 ====================
+    // 排班规则：
+    // 1. 每人排连续班次（不拆分）
+    // 2. 高效率员工优先覆盖早晚高峰（9-12 / 16-19）
+    // 3. 超过6小时工作给1小时吃饭，吃饭在12-16点之间，晚于上班2小时后；上班早的员工优先吃饭，上班晚的轮流靠后
+    // 4. 人员充足时：高效率优先→低效率；稳定小时工（入职早）优先→短期小时工
+    // 5. 员工池人员一天最长排8小时（不含吃饭时间）
+    // 6. 开档/收档覆盖：最早有需求时段至少1名高效员工池人员在岗，最晚有需求时段至少1名员工池人员在岗（开档收档不能同一人）
+    // 7. 排班时间超出登记出勤时间时，弹窗提醒校准
+    function autoSchedule() {
+      if (!employeePool.value.length) {
+        alert('员工池为空，请先在「员工池」中添加员工');
+        return;
+      }
+
+      const demand = slotDemand.value;
+      if (!demand.length || demand.every(d => d.demand === 0)) {
+        alert('请先设置订单预估数据，再执行智能排班');
+        return;
+      }
+
+      const n = timeSlots.value.length; // 30个半小时时段
+
+      // 高峰时段索引集合（9:00-12:00, 16:00-19:00）
+      // 使用时段分钟数判断，确保11:30-12:00、18:30-19:00等边界时段不被遗漏
+      const peakSet = new Set();
+      timeSlots.value.forEach((slot, i) => {
+        const [sh, sm] = slot.start.split(':').map(Number);
+        const [eh, em] = slot.end.split(':').map(Number);
+        const startMin = sh * 60 + sm;
+        const endMin = eh * 60 + em;
+        // 时段完全在高峰窗口内
+        if ((startMin >= 540 && endMin <= 720) || (startMin >= 960 && endMin <= 1140)) {
+          peakSet.add(i);
+        }
+      });
+
+      // 剩余需求（随排班递减）
+      const remaining = demand.map(d => d.demand);
+
+      // 清空现有排班（保留临时工）
+      const tempStaff = staffList.value.filter(s => s.isTemp);
+      staffList.value = tempStaff.map(s => reactive({ ...s }));
+
+      // 员工池排序：效率降序 → 入职早优先（稳定小时工优先）
+      const sortedPool = [...employeePool.value].sort((a, b) => {
+        if (b.efficiency !== a.efficiency) return b.efficiency - a.efficiency;
+        if (a.hireDate && b.hireDate) return a.hireDate.localeCompare(b.hireDate);
+        if (a.hireDate) return -1;
+        if (b.hireDate) return 1;
+        return 0;
+      });
+
+      // 已占用的吃饭时段集合（用于轮流吃饭：上班早的员工优先选，上班晚的避开）
+      const takenBreakSlots = new Set();
+      // 最大工作时长：8小时 = 16个半小时时段（不含吃饭）— 提升到函数作用域，供开档/收档辅助函数使用
+      const MAX_WORK_SLOTS = 16;
+
+      // 为每个员工找最优连续班次
+      sortedPool.forEach(emp => {
+        let bestScore = -1;
+        let bestStart = -1;
+        let bestLen = 0;
+        let bestBreakStart = -1; // 吃饭时段起始索引（-1=无吃饭）
+
+        for (let si = 0; si < n; si++) {
+          // 员工可用时段检查
+          if (!emp.availableSlots[timeSlots.value[si].label]) continue;
+
+          for (let len = 2; len <= Math.min(MAX_WORK_SLOTS + 2, n - si); len++) {
+            // len = 班次总跨度（含可能的吃饭时段）
+            // 工作时长 = len（≤6h即≤12时段无吃饭）或 len-2（>6h有1h吃饭）
+            const workSlots = len <= 12 ? len : len - 2;
+            if (workSlots > MAX_WORK_SLOTS) break;
+
+            const ei = si + len - 1; // 结束时段索引
+            if (ei >= n) break;
+
+            // 检查连续时段全部可用
+            let allAvail = true;
+            for (let k = si; k <= ei; k++) {
+              if (!emp.availableSlots[timeSlots.value[k].label]) { allAvail = false; break; }
+            }
+            if (!allAvail) break; // 后续更长班次也不可能
+
+            // 计算班次得分
+            // 评分逻辑：先确定吃饭位置，再只对「工作时段」计分
+            // 需求覆盖(×20) + 高峰覆盖(+80/slot) + 工时利用率(len×30)
+            let score = 0;
+            let breakStart = -1;
+
+            // Step 1: 确定吃饭位置（>6h班次强制）
+            if (len > 12) {
+              // 需要安排1小时吃饭（2个半小时时段）
+              // 约束：①在12:00-16:00之间 ②晚于上班开始2小时后
+              const shiftStartMin = timeToMin(timeSlots.value[si].start);
+              const breakEarliestMin = shiftStartMin + 120; // 上班2小时后
+              const breakEarliestSlot = minToSlotIdx(breakEarliestMin);
+              const breakLatestStartMin = 15 * 60; // 15:00开始，16:00结束
+              const breakLatestSlot = minToSlotIdx(breakLatestStartMin);
+
+              let bestBreakScore = -Infinity;
+              let bestBreakIdx = -1;
+
+              for (let bk = Math.max(si + 4, breakEarliestSlot); bk <= Math.min(ei - 1, breakLatestSlot); bk++) {
+                // 吃饭占2个时段：bk 和 bk+1
+                if (bk + 1 > ei) continue;
+                // 吃饭时段的demand越低越好（少浪费人力）
+                const breakCost = (remaining[bk] || 0) + (remaining[bk + 1] || 0);
+                // 轮流吃饭惩罚：如果该吃饭时段已被上班更早的员工占用，加大惩罚
+                let takenPenalty = 0;
+                if (takenBreakSlots.has(bk) || takenBreakSlots.has(bk + 1)) {
+                  takenPenalty = 200; // 大惩罚，优先让上班早的员工先吃饭
+                }
+                const breakScore = -breakCost - takenPenalty; // 越小越好 → 取最大
+                if (breakScore > bestBreakScore) {
+                  bestBreakScore = breakScore;
+                  bestBreakIdx = bk;
+                }
+              }
+
+              if (bestBreakIdx < 0) continue; // 找不到合法吃饭位置，跳过此班次
+              breakStart = bestBreakIdx;
+            }
+
+            // Step 2: 只对「工作时段」计分（跳过吃饭时段，中性处理）
+            for (let k = si; k <= ei; k++) {
+              // 吃饭时段不计入得分（强制约束，不应惩罚长班次）
+              if (breakStart >= 0 && (k === breakStart || k === breakStart + 1)) continue;
+              const w = remaining[k];
+              if (w > 0) {
+                score += w * 20; // 需求覆盖（主因子）
+                if (peakSet.has(k)) {
+                  score += 80; // 高峰覆盖（辅助加分）
+                }
+              }
+            }
+
+            // Step 3: 早班激励（高效率员工优先排早班）
+            // 越早开始的班次加分越多，高效率员工加成更大
+            // ★★★(eff=3): 最大1800分, ★★☆(eff=2): 最大1200分, ★☆☆(eff=1): 最大600分
+            score += (n - si) * 10 * emp.efficiency;
+
+            // Step 4: 工时利用率激励：班次越长，员工工时利用越充分
+            score += len * 30;
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestStart = si;
+              bestLen = len;
+              bestBreakStart = breakStart;
+            }
+          }
+        }
+
+        // 应用最优班次
+        if (bestStart >= 0 && bestLen > 0) {
+          const staff = reactive({
+            name: emp.name,
+            shifts: {},
+            quickStart: timeSlots.value[bestStart].start,
+            quickEnd: timeSlots.value[bestStart + bestLen - 1].end,
+            isTemp: false,
+            efficiency: emp.efficiency,
+          });
+          timeSlots.value.forEach(slot => { staff.shifts[slot.label] = false; });
+
+          for (let k = bestStart; k < bestStart + bestLen; k++) {
+            // 吃饭时段不排班
+            if (bestBreakStart >= 0 && (k === bestBreakStart || k === bestBreakStart + 1)) continue;
+            const slotLabel = timeSlots.value[k].label;
+            staff.shifts[slotLabel] = true;
+            if (remaining[k] > 0) remaining[k]--;
+          }
+
+          // 记录吃饭时段，供后续员工轮流避开
+          if (bestBreakStart >= 0) {
+            takenBreakSlots.add(bestBreakStart);
+            takenBreakSlots.add(bestBreakStart + 1);
+          }
+
+          staffList.value.push(staff);
+        }
+      });
+
+      // ==================== 规则1：开档/收档必须有员工池人员 ====================
+      // 找最早和最晚有需求的时段
+      const originalDemand = demand.map(d => d.demand);
+      let earliestNeeded = -1, latestNeeded = -1;
+      for (let i = 0; i < n; i++) {
+        if (originalDemand[i] > 0) {
+          if (earliestNeeded < 0) earliestNeeded = i;
+          latestNeeded = i;
+        }
+      }
+      console.log('[排班调试] originalDemand:', originalDemand);
+      console.log('[排班调试] earliestNeeded:', earliestNeeded, '=>', earliestNeeded >= 0 ? timeSlots.value[earliestNeeded]?.label : 'N/A');
+      console.log('[排班调试] latestNeeded:', latestNeeded, '=>', latestNeeded >= 0 ? timeSlots.value[latestNeeded]?.label : 'N/A');
+      console.log('[排班调试] 主循环后 staffList 人数:', staffList.value.filter(s => !s.isTemp).length);
+
+      const highEffPoolEmps = sortedPool.filter(emp => emp.efficiency === 3);
+
+      // 辅助：检查某时段是否被高效员工池人员覆盖
+      function isSlotCoveredByHighEff(slotIdx) {
+        const lbl = timeSlots.value[slotIdx].label;
+        return staffList.value.some(s => !s.isTemp && s.efficiency === 3 && s.shifts[lbl]);
+      }
+      // 辅助：检查某时段是否被任意员工池人员覆盖
+      function isSlotCoveredByPool(slotIdx) {
+        const lbl = timeSlots.value[slotIdx].label;
+        return staffList.value.some(s => !s.isTemp && s.shifts[lbl]);
+      }
+      // 辅助：扩展已排班员工的班次向前覆盖到目标时段
+      function extendStaffToSlot(staffObj, empData, targetIdx, direction) {
+        // 计算当前已排班时段数
+        const curWorkSlots = Object.values(staffObj.shifts).filter(v => v).length;
+        if (direction === 'left') {
+          // 向前扩展
+          const curStartIdx = timeSlots.value.findIndex(t => t.start === staffObj.quickStart);
+          const extendCount = curStartIdx - targetIdx;
+          if (curWorkSlots + extendCount > MAX_WORK_SLOTS) return false;
+          for (let k = targetIdx; k < curStartIdx; k++) {
+            if (!empData.availableSlots[timeSlots.value[k].label]) return false;
+          }
+          for (let k = targetIdx; k < curStartIdx; k++) {
+            const lbl = timeSlots.value[k].label;
+            if (!staffObj.shifts[lbl]) {
+              staffObj.shifts[lbl] = true;
+              if (remaining[k] > 0) remaining[k]--;
+            }
+          }
+          staffObj.quickStart = timeSlots.value[targetIdx].start;
+          return true;
+        } else {
+          // 向后扩展
+          const curEndIdx = timeSlots.value.findIndex(t => t.end === staffObj.quickEnd);
+          const extendCount = targetIdx - curEndIdx;
+          if (curWorkSlots + extendCount > MAX_WORK_SLOTS) return false;
+          for (let k = curEndIdx + 1; k <= targetIdx; k++) {
+            if (!empData.availableSlots[timeSlots.value[k].label]) return false;
+          }
+          for (let k = curEndIdx + 1; k <= targetIdx; k++) {
+            const lbl = timeSlots.value[k].label;
+            if (!staffObj.shifts[lbl]) {
+              staffObj.shifts[lbl] = true;
+              if (remaining[k] > 0) remaining[k]--;
+            }
+          }
+          staffObj.quickEnd = timeSlots.value[targetIdx].end;
+          return true;
+        }
+      }
+      // 辅助：为高效员工创建最短班次覆盖开档/收档
+      // 如果该员工已在排班表中，扩展其班次而非创建新条目（避免同一人出现两行）
+      function createMinShiftForSlot(emp, startIdx) {
+        // 先检查该员工是否已在排班表中
+        const existingStaff = staffList.value.find(s => !s.isTemp && s.name === emp.name);
+        if (existingStaff) {
+          // 已在排班，尝试扩展其班次覆盖 startIdx
+          const empData = sortedPool.find(e => e.name === emp.name);
+          if (empData) {
+            // 判断扩展方向
+            const curStartIdx = timeSlots.value.findIndex(t => t.start === existingStaff.quickStart);
+            const curEndIdx = timeSlots.value.findIndex(t => t.end === existingStaff.quickEnd);
+            const direction = startIdx < curStartIdx ? 'left' : 'right';
+            if (extendStaffToSlot(existingStaff, empData, startIdx, direction)) {
+              return existingStaff;
+            }
+          }
+          return null; // 扩展失败
+        }
+        // 该员工未排班，创建新条目
+        let endIdx = startIdx;
+        // 至少排2个时段（1小时），向后延伸到有需求的时段，但不超过8小时（16时段）
+        for (let k = startIdx + 1; k < n && k <= startIdx + 5 && (k - startIdx) < MAX_WORK_SLOTS; k++) {
+          if (!emp.availableSlots[timeSlots.value[k].label]) break;
+          endIdx = k;
+          if (originalDemand[k] <= 0 && k > startIdx + 3) break;
+        }
+        const staff = reactive({
+          name: emp.name,
+          shifts: {},
+          quickStart: timeSlots.value[startIdx].start,
+          quickEnd: timeSlots.value[endIdx].end,
+          isTemp: false,
+          efficiency: emp.efficiency,
+        });
+        timeSlots.value.forEach(slot => { staff.shifts[slot.label] = false; });
+        for (let k = startIdx; k <= endIdx; k++) {
+          staff.shifts[timeSlots.value[k].label] = true;
+          if (remaining[k] > 0) remaining[k]--;
+        }
+        staffList.value.push(staff);
+        return staff;
+      }
+
+      // 开档覆盖：最早有需求时段至少1名员工池人员在场
+      let openingCoveredBy = null; // 记录开档覆盖人姓名，收档须换人
+      if (earliestNeeded >= 0) {
+        const openLbl = timeSlots.value[earliestNeeded].label;
+        const alreadyCovered = isSlotCoveredByPool(earliestNeeded);
+        console.log('[排班调试] 开档检查: slot=', openLbl, 'alreadyCovered=', alreadyCovered);
+        if (!alreadyCovered) {
+          let covered = false;
+          // 优先：找已排班的员工池人员，向前扩展到earliestNeeded
+          for (const s of staffList.value) {
+            if (s.isTemp) continue;
+            const empData = sortedPool.find(e => e.name === s.name);
+            if (!empData) continue;
+            if (!empData.availableSlots[openLbl]) continue;
+            if (extendStaffToSlot(s, empData, earliestNeeded, 'left')) {
+              covered = true;
+              openingCoveredBy = s.name;
+              console.log('[排班调试] 开档覆盖: 扩展', s.name, '到', openLbl);
+              break;
+            }
+          }
+          // 兜底：找未排班的员工池人员创建最短班次（优先高效）
+          if (!covered) {
+            for (const emp of sortedPool) {
+              if (emp.availableSlots[openLbl]) {
+                createMinShiftForSlot(emp, earliestNeeded);
+                covered = true;
+                openingCoveredBy = emp.name;
+                console.log('[排班调试] 开档覆盖: 新建班次', emp.name, '在', openLbl);
+                break;
+              }
+            }
+          }
+          if (!covered) {
+            console.log('[排班调试] 开档覆盖失败: 无人可在', openLbl, '排班');
+          }
+        } else {
+          // 已有员工池人员覆盖，记录是谁
+          const opener = staffList.value.find(s => !s.isTemp && s.shifts[openLbl]);
+          if (opener) openingCoveredBy = opener.name;
+          console.log('[排班调试] 开档已覆盖:', openingCoveredBy);
+        }
+      }
+
+      // 收档覆盖：至少1名员工池人员在最晚有需求时段（不能与开档同一人）
+      if (latestNeeded >= 0) {
+        const closeLbl = timeSlots.value[latestNeeded].label;
+        const closeCovered = isSlotCoveredByPool(latestNeeded);
+        console.log('[排班调试] 收档检查: slot=', closeLbl, 'alreadyCovered=', closeCovered, 'openingCoveredBy=', openingCoveredBy);
+        if (!closeCovered) {
+          let covered = false;
+          // 优先：找已排班的员工池人员（排除开档人员），向后扩展
+        for (const s of staffList.value) {
+          if (s.isTemp) continue;
+          if (s.name === openingCoveredBy) continue; // 开档收档不能同一人
+          const empData = sortedPool.find(e => e.name === s.name);
+          if (!empData) continue;
+          if (!empData.availableSlots[closeLbl]) continue;
+          if (extendStaffToSlot(s, empData, latestNeeded, 'right')) {
+            covered = true;
+            break;
+          }
+        }
+        // 兜底1：找未排班的员工池人员（排除开档人员）创建最短班次
+        if (!covered) {
+          for (const emp of sortedPool) {
+            if (emp.name === openingCoveredBy) continue;
+            if (emp.availableSlots[closeLbl]) {
+              createMinShiftForSlot(emp, latestNeeded);
+              covered = true;
+              break;
+            }
+          }
+        }
+        // 兜底2：找已排班且班次结束在latestNeeded之前的员工，向右扩展到latestNeeded
+        if (!covered) {
+          for (const s of staffList.value) {
+            if (s.isTemp || s.name === openingCoveredBy) continue;
+            const empData = sortedPool.find(e => e.name === s.name);
+            if (!empData || !empData.availableSlots[closeLbl]) continue;
+            const curEndIdx = timeSlots.value.findIndex(t => t.end === s.quickEnd);
+            if (curEndIdx >= 0 && curEndIdx < latestNeeded) {
+              if (extendStaffToSlot(s, empData, latestNeeded, 'right')) {
+                covered = true;
+                break;
+              }
+            }
+          }
+        }
+        if (!covered) {
+            console.log('[排班调试] 收档覆盖失败: 无人可在', closeLbl, '排班');
+        }
+      } else {
+        // 已有员工池人员覆盖收档，检查是否与开档同一人
+        const closer = staffList.value.find(s => !s.isTemp && s.shifts[closeLbl]);
+        if (closer) console.log('[排班调试] 收档已覆盖:', closer.name);
+        if (closer && closer.name === openingCoveredBy) {
+          // 同一人，需要换人覆盖收档
+          // 先清除该人在收档时段的排班
+          closer.shifts[closeLbl] = false;
+          // 找其他人覆盖
+          let covered = false;
+          for (const s of staffList.value) {
+            if (s.isTemp || s.name === openingCoveredBy) continue;
+            const empData = sortedPool.find(e => e.name === s.name);
+            if (!empData) continue;
+            if (!empData.availableSlots[closeLbl]) continue;
+            if (extendStaffToSlot(s, empData, latestNeeded, 'right')) {
+              covered = true;
+              break;
+            }
+          }
+          if (!covered) {
+            for (const emp of sortedPool) {
+              if (emp.name === openingCoveredBy) continue;
+              if (emp.availableSlots[closeLbl]) {
+                createMinShiftForSlot(emp, latestNeeded);
+                covered = true;
+                break;
+              }
+            }
+          }
+          // 兜底：找班次结束在latestNeeded之前的员工向右扩展
+          if (!covered) {
+            for (const s of staffList.value) {
+              if (s.isTemp || s.name === openingCoveredBy) continue;
+              const empData = sortedPool.find(e => e.name === s.name);
+              if (!empData || !empData.availableSlots[closeLbl]) continue;
+              const curEndIdx = timeSlots.value.findIndex(t => t.end === s.quickEnd);
+              if (curEndIdx >= 0 && curEndIdx < latestNeeded) {
+                if (extendStaffToSlot(s, empData, latestNeeded, 'right')) {
+                  covered = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      }
+
+      // 开档/收档覆盖完成，输出最终状态
+      console.log('[排班调试] 开档/收档覆盖完成: openingCoveredBy=', openingCoveredBy);
+      console.log('[排班调试] 最终排班人数:', staffList.value.filter(s => !s.isTemp).length);
+      if (earliestNeeded >= 0) {
+        const lbl = timeSlots.value[earliestNeeded].label;
+        const who = staffList.value.filter(s => !s.isTemp && s.shifts[lbl]).map(s => s.name);
+        console.log('[排班调试] 开档时段', lbl, '排班人员:', who);
+      }
+      if (latestNeeded >= 0) {
+        const lbl = timeSlots.value[latestNeeded].label;
+        const who = staffList.value.filter(s => !s.isTemp && s.shifts[lbl]).map(s => s.name);
+        console.log('[排班调试] 收档时段', lbl, '排班人员:', who);
+      }
+
+      // ==================== 规则2：排班时间超出出勤时间提醒校准 ====================
+      const overtimeWarnings = [];
+      staffList.value.forEach(s => {
+        if (s.isTemp) return;
+        const empData = employeePool.value.find(e => e.name === s.name);
+        if (!empData || !empData.timeStart || !empData.timeEnd) return;
+        // 计算注册出勤时长
+        const regStart = timeToMin(empData.timeStart);
+        const regEnd = timeToMin(empData.timeEnd);
+        const regHours = (regEnd - regStart) / 60;
+        if (regHours <= 0) return;
+        // 计算实际排班时长（工作时段数 × 0.5h）
+        const scheduledSlots = Object.values(s.shifts).filter(v => v).length;
+        const scheduledHours = scheduledSlots * 0.5;
+        if (scheduledHours > regHours + 0.01) { // 容差0.01h避免浮点误差
+          overtimeWarnings.push(`${s.name}：排班 ${scheduledHours.toFixed(1)}h > 登记出勤 ${regHours.toFixed(1)}h（${empData.timeStart}-${empData.timeEnd}）`);
+        }
+      });
+
+      // 不自动保存，仅由用户手动点击「保存排班」触发
+      nextTick(() => { updateSchedulingChart(); });
+
+      let alertMsg = '智能排班完成！\n\n排班规则：\n• 连续班次，不拆分\n• 高效率员工优先排早班\n• 超6小时自动安排1小时吃饭（12-16点间，上班2小时后，上班早的员工优先吃饭）\n• 高效率→低效率，稳定小时工→短期小时工\n• 每人最长8小时（不含吃饭）\n• 开档/收档至少有1名员工池人员在场（不能同一人）';
+      if (overtimeWarnings.length > 0) {
+        alertMsg += '\n\n⚠️ 排班时间超出登记出勤时间，请校准：\n' + overtimeWarnings.join('\n');
+      }
+      alert(alertMsg);
+    }
+
+    // 时间转分钟（"07:00" → 420）
+    function timeToMin(t) {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    }
+    // 分钟转时段索引（420 → 0，即07:00对应的slot索引）
+    function minToSlotIdx(min) {
+      const baseMin = 7 * 60; // 07:00
+      return Math.max(0, Math.floor((min - baseMin) / 30));
+    }
+
+    // ==================== 按日期保存排班 ====================
+    function saveScheduleForDate() {
+      try {
+        const raw = localStorage.getItem(storagePrefix.value + 'scheduling_by_date');
+        const data = raw ? JSON.parse(raw) : {};
+        const store = selectedStore.value?.name || '';
+        const date = selectedDate.value;
+        const key = date + '_' + store;
+
+        data[key] = {
+          date,
+          store,
+          brand: brands.value[selectedBrandIdx.value]?.name || '',
+          efficiency: efficiencyPerHour.value,
+          staffList: staffList.value.map(s => ({
+            name: s.name,
+            shifts: { ...s.shifts },
+            isTemp: !!s.isTemp,
+            efficiency: s.efficiency || 0,
+          })),
+          savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(storagePrefix.value + 'scheduling_by_date', JSON.stringify(data));
+      } catch (e) { console.error('保存排班失败:', e); }
+    }
+
+    function loadScheduleForDate() {
+      try {
+        const raw = localStorage.getItem(storagePrefix.value + 'scheduling_by_date');
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        const store = selectedStore.value?.name || '';
+        const date = selectedDate.value;
+        const key = date + '_' + store;
+
+        if (data[key]) {
+          const saved = data[key];
+          // 恢复员工排班
+          staffList.value = saved.staffList.map(s => {
+            const staff = reactive({
+              name: s.name,
+              shifts: {},
+              quickStart: '',
+              quickEnd: '',
+              isTemp: !!s.isTemp,
+              efficiency: s.efficiency || 0,
+            });
+            timeSlots.value.forEach(slot => {
+              staff.shifts[slot.label] = !!s.shifts[slot.label];
+            });
+            return staff;
+          });
+          efficiencyPerHour.value = saved.efficiency || 4.5;
+          return true;
+        }
+        return false;
+      } catch (e) {
+        console.error('加载排班失败:', e);
+        return false;
+      }
+    }
+
+    // 需求人数
+    const slotDemand = computed(() => {
+      return timeSlots.value.map((slot, i) => {
+        const item = hourlyForecastData.value[i];
+        const orders = item ? item.forecast : 0;
+        const raw = orders / (efficiencyPerHour.value * 0.5);
+        return {
+          ...slot,
+          rawDemand: raw,
+          demand: Math.ceil(raw),
+        };
+      });
+    });
+
+    // 排班人数
+    const slotScheduled = computed(() => {
+      return timeSlots.value.map(slot => {
+        return staffList.value.filter(s => s.shifts[slot.label]).length;
+      });
+    });
+
+    // 差异
+    const slotGap = computed(() => {
+      return timeSlots.value.map((slot, i) => {
+        const demand = slotDemand.value[i]?.demand || 0;
+        const scheduled = slotScheduled.value[i];
+        const gap = scheduled - demand;
+        let status;
+        if (demand === 0 && scheduled === 0) status = 'none';
+        else if (scheduled < demand) status = 'red';
+        else if (scheduled === demand) status = 'green';
+        else status = 'yellow';
+        return { ...slot, demand, scheduled, gap, status };
+      });
+    });
+
+    const peakDemand = computed(() => {
+      return Math.max(...slotDemand.value.map(d => d.demand), 0);
+    });
+
+    const peakDemandSlot = computed(() => {
+      const arr = slotDemand.value;
+      if (!arr.length) return '—';
+      let max = 0, slot = '—';
+      arr.forEach(d => { if (d.demand > max) { max = d.demand; slot = d.start; } });
+      return slot;
+    });
+
+    const totalDemandHours = computed(() => {
+      const totalSlots = slotDemand.value.reduce((sum, d) => sum + d.rawDemand, 0);
+      return (totalSlots * 0.5 / efficiencyPerHour.value).toFixed(1);
+    });
+
+    const gapStatus = computed(() => {
+      let understaffed = 0, perfect = 0, overstaffed = 0;
+      slotGap.value.forEach(s => {
+        if (s.status === 'red') understaffed++;
+        else if (s.status === 'green') perfect++;
+        else if (s.status === 'yellow') overstaffed++;
+      });
+      return { understaffed, perfect, overstaffed };
+    });
+
+    function statusColor(status) {
+      return { red: 'var(--color-red)', green: 'var(--color-green)', yellow: 'var(--color-yellow)', none: 'var(--color-muted)' }[status];
+    }
+    function statusBg(status) {
+      return {
+        red: 'rgba(220,38,38,0.05)',
+        green: 'rgba(22,163,74,0.05)',
+        yellow: 'rgba(202,138,4,0.05)',
+        none: 'transparent'
+      }[status];
+    }
+    function statusBadgeBg(status) {
+      return {
+        red: 'rgba(220,38,38,0.12)',
+        green: 'rgba(22,163,74,0.12)',
+        yellow: 'rgba(202,138,4,0.12)',
+        none: 'rgba(107,103,96,0.12)'
+      }[status];
+    }
+    function statusLabel(status) {
+      return { red: '少人', green: '正好', yellow: '充足', none: '—' }[status];
+    }
+
+    // ==================== 排班文件夹 ====================
+    const savedSchedules = ref([]);
+
+    function buildScheduleRows(sch) {
+      // 生成Excel行数据：员工×时段矩阵
+      const rows = [];
+      const brand = sch.brand || '';
+      const store = sch.store || '';
+      rows.push([brand + ' ' + store + ' 排班表']);
+      rows.push(['日期: ' + sch.date, '时效: ' + sch.efficiency + '单/人时', '总员工: ' + sch.staffCount + '人']);
+      rows.push([]);
+      // Header: 员工 + 类型 + 效率 + 时段
+      const header = ['员工', '类型', '效率'];
+      (sch.slots || []).forEach(s => header.push(s));
+      header.push('工时(h)');
+      rows.push(header);
+      // Data rows
+      const effLabels = { 3: '★★★', 2: '★★', 1: '★' };
+      (sch.staffList || []).forEach(s => {
+        const type = s.isTemp ? '临时工' : '正式';
+        const eff = s.efficiency ? (effLabels[s.efficiency] || '-') : '-';
+        const row = [s.name, type, eff];
+        let count = 0;
+        (sch.slots || []).forEach(slot => {
+          if (s.shifts[slot]) { row.push('✓'); count++; }
+          else row.push('');
+        });
+        row.push((count * 0.5).toFixed(1));
+        rows.push(row);
+      });
+      rows.push([]);
+      // 需求/排班/差异 汇总行
+      const demandRow = ['需求人数'];
+      const scheduledRow = ['排班人数'];
+      const gapRow = ['差异'];
+      (sch.summary || []).forEach(s => {
+        demandRow.push(s.demand);
+        scheduledRow.push(s.scheduled);
+        gapRow.push(s.gap > 0 ? '+' + s.gap : s.gap);
+      });
+      rows.push(demandRow);
+      rows.push(scheduledRow);
+      rows.push(gapRow);
+      return rows;
+    }
+
+    function writeScheduleExcel(sch) {
+      const rows = buildScheduleRows(sch);
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 8 }, ...(sch.slots || []).map(() => ({ wch: 7 })), { wch: 8 }];
+      XLSX.utils.book_append_sheet(wb, ws, '排班表');
+      const fileName = sch.brand + sch.store + '_排班_' + sch.date + '.xlsx';
+      XLSX.writeFile(wb, fileName);
+    }
+
+    function exportScheduling() {
+      if (!staffList.value.length) {
+        alert('请先添加员工');
+        return;
+      }
+      const now = new Date();
+      const saveTime = formatDateLocal(now) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      const slots = timeSlots.value.map(s => s.label);
+      const staffData = staffList.value.map(s => ({
+        name: s.name || '未命名',
+        shifts: { ...s.shifts },
+        isTemp: s.isTemp || false,
+        efficiency: s.efficiency || 0,
+      }));
+      const summary = slotGap.value.map(s => ({ demand: s.demand, scheduled: s.scheduled, gap: s.gap }));
+      const schedule = {
+        date: selectedDate.value,
+        brand: brands.value[selectedBrandIdx.value]?.name || '',
+        store: selectedStore.value?.name || '',
+        efficiency: efficiencyPerHour.value,
+        staffCount: staffList.value.length,
+        slots,
+        staffList: staffData,
+        summary,
+        saveTime,
+      };
+      // Save to localStorage
+      try {
+        const raw = localStorage.getItem(storagePrefix.value + 'scheduling_folder');
+        const folder = raw ? JSON.parse(raw) : [];
+        // Replace same date+store entry if exists
+        const existIdx = folder.findIndex(f => f.date === schedule.date && f.store === schedule.store);
+        if (existIdx >= 0) folder[existIdx] = schedule;
+        else folder.push(schedule);
+        // Sort by date descending
+        folder.sort((a, b) => b.date.localeCompare(a.date));
+        localStorage.setItem(storagePrefix.value + 'scheduling_folder', JSON.stringify(folder));
+        savedSchedules.value = folder;
+      } catch (e) {
+        console.error('保存排班失败:', e);
+      }
+      // Download Excel
+      writeScheduleExcel(schedule);
+    }
+
+    function reExportSchedule(idx) {
+      const sch = savedSchedules.value[idx];
+      if (sch) writeScheduleExcel(sch);
+    }
+
+    function deleteSchedule(idx) {
+      if (!confirm('确认删除该排班记录？')) return;
+      const folder = savedSchedules.value.filter((_, i) => i !== idx);
+      savedSchedules.value = folder;
+      try {
+        localStorage.setItem(storagePrefix.value + 'scheduling_folder', JSON.stringify(folder));
+      } catch (e) {
+        console.error('删除失败:', e);
+      }
+    }
+
+    function loadSavedSchedules() {
+      try {
+        const raw = localStorage.getItem(storagePrefix.value + 'scheduling_folder');
+        if (raw) savedSchedules.value = JSON.parse(raw);
+      } catch (e) {
+        console.error('加载排班文件夹失败:', e);
+      }
+    }
+
+    // ==================== 图表 ====================
+    let weatherChart = null;
+    let distributionChart = null;
+    let schedulingChart = null;
+
+    function updateWeatherChart() {
+      const canvas = document.getElementById('weatherChart');
+      if (!canvas) return;
+      if (weatherChart) weatherChart.destroy();
+      const data = hourlyWeather.value;
+      if (!data.length) return;
+
+      // 动态计算温度范围（使波动更明显）
+      const temps = data.map(d => d.temp);
+      const tMin = Math.floor(Math.min(...temps) - 1.5);
+      const tMax = Math.ceil(Math.max(...temps) + 1.5);
+      // 动态计算降水范围
+      const precips = data.map(d => d.precipProb);
+      const pMax = Math.min(Math.ceil(Math.max(...precips) / 10) * 10 + 10, 100);
+
+      weatherChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: data.map(d => d.hour.slice(0, 5)),
+          datasets: [
+            {
+              type: 'line',
+              label: '温度 (°C)',
+              data: temps,
+              borderColor: '#0EA5E9',
+              backgroundColor: 'rgba(14,165,233,0.12)',
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointBackgroundColor: '#0EA5E9',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 1.5,
+              pointHoverRadius: 6,
+              fill: true,
+              yAxisID: 'y',
+              tension: 0.4,
+              order: 1,
+            },
+            {
+              type: 'bar',
+              label: '降水概率 (%)',
+              data: precips,
+              backgroundColor: precips.map(p => {
+                if (p >= 80) return 'rgba(37,99,235,0.55)';
+                if (p >= 50) return 'rgba(59,130,246,0.4)';
+                if (p >= 30) return 'rgba(96,165,250,0.3)';
+                return 'rgba(147,197,253,0.2)';
+              }),
+              borderRadius: 4,
+              yAxisID: 'y1',
+              order: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            y: {
+              type: 'linear', position: 'left',
+              min: tMin, max: tMax,
+              title: { display: true, text: '°C', font: { size: 11 } },
+              ticks: { stepSize: 2, font: { size: 10 } },
+              grid: { color: 'rgba(0,0,0,0.04)' },
+            },
+            y1: {
+              type: 'linear', position: 'right',
+              min: 0, max: pMax,
+              title: { display: true, text: '%', font: { size: 11 } },
+              ticks: { stepSize: Math.ceil(pMax / 5), font: { size: 10 } },
+              grid: { drawOnChartArea: false },
+            },
+          },
+          plugins: {
+            legend: { display: true, position: 'top', labels: { font: { size: 11 }, usePointStyle: true, pointStyle: 'circle', padding: 16 } },
+            tooltip: {
+              backgroundColor: 'rgba(26,24,21,0.88)',
+              titleFont: { size: 12 },
+              bodyFont: { size: 11 },
+              padding: 10,
+              cornerRadius: 8,
+            },
+          },
+        },
+      });
+    }
+
+    function updateDistributionChart() {
+      const canvas = document.getElementById('distributionChart');
+      if (!canvas) return;
+      if (distributionChart) distributionChart.destroy();
+      const data = hourlyDistribution.value;
+      if (!data.length) return;
+
+      distributionChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: data.map(d => d.start),
+          datasets: [{
+            label: '订单占比 (%)',
+            data: data.map(d => (d.ratio * 100).toFixed(1)),
+            backgroundColor: 'rgba(245,158,11,0.65)',
+            borderRadius: 3,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { callback: v => v + '%' } },
+          },
+        },
+      });
+    }
+
+    function updateSchedulingChart() {
+      const canvas = document.getElementById('schedulingChart');
+      if (!canvas) return;
+      if (schedulingChart) schedulingChart.destroy();
+      const data = slotGap.value;
+      if (!data.length) return;
+
+      // 单柱子，按排班差异着色：红=少人 绿=正好 黄=多人
+      const barColors = data.map(d => {
+        if (d.status === 'red') return 'rgba(255,77,79,0.8)';
+        if (d.status === 'green') return 'rgba(82,196,26,0.8)';
+        if (d.status === 'yellow') return 'rgba(250,173,20,0.8)';
+        return 'rgba(200,200,200,0.2)';
+      });
+
+      const forecastData = hourlyForecastData.value;
+
+      schedulingChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: data.map(d => d.start),
+          datasets: [{
+            label: '需求人数',
+            data: data.map(d => d.demand),
+            backgroundColor: barColors,
+            borderRadius: 3,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (ctx) => ctx[0].label,
+                label: (ctx) => {
+                  const i = ctx.dataIndex;
+                  const d = data[i];
+                  const f = forecastData[i] || {};
+                  const ratio = f.ratio ? (f.ratio * 100).toFixed(1) + '%' : '—';
+                  const gap = d.gap > 0 ? '+' + d.gap : String(d.gap);
+                  return [
+                    '占比: ' + ratio,
+                    '预估单量: ' + (f.forecast || 0) + '单',
+                    '需求人数: ' + d.demand + '人',
+                    '排班人数: ' + d.scheduled + '人',
+                    '差异: ' + gap + '人',
+                  ];
+                },
+              },
+            },
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } },
+          },
+        },
+      });
+    }
+
+    // ==================== 门店设置 ====================
+    function addBrand() {
+      brands.value.push({ name: '新品牌', stores: [] });
+    }
+    function addStore(bi) {
+      brands.value[bi].stores.push({
+        name: '新门店', city: '北京', businessStart: '07:00', businessEnd: '22:00'
+      });
+    }
+    function removeStore(bi, si) {
+      brands.value[bi].stores.splice(si, 1);
+      if (selectedBrandIdx.value === bi && selectedStoreIdx.value >= si) {
+        selectedStoreIdx.value = Math.max(0, selectedStoreIdx.value - 1);
+      }
+    }
+    function removeBrand(bi) {
+      brands.value.splice(bi, 1);
+      if (selectedBrandIdx.value >= brands.value.length) {
+        selectedBrandIdx.value = Math.max(0, brands.value.length - 1);
+      }
+    }
+
+    function onBrandChange() {
+      selectedStoreIdx.value = 0;
+      onStoreChange();
+    }
+
+    function onStoreChange() {
+      // 设置每日订单汇总（汇总=品牌级，具体门店=门店级）
+      const storeName = selectedStore.value?.name;
+      const brandName = brands.value[selectedBrandIdx.value]?.name;
+      if (storeName === '汇总' && brandName && brandDailyData[brandName]) {
+        excelDailyTotals.value = { ...brandDailyData[brandName] };
+        if (!excelFileName.value) {
+          excelFileName.value = 'FBI看板1796001 (8.8-9.6, 43570单)';
+          excelRows.value = new Array(43570);
+        }
+      } else if (storeName && storeDailyData[storeName]) {
+        excelDailyTotals.value = { ...storeDailyData[storeName] };
+        if (!excelFileName.value) {
+          excelFileName.value = 'FBI看板1796001 (8.8-9.6, 43570单)';
+          excelRows.value = new Array(43570);
+        }
+      } else {
+        excelDailyTotals.value = {};
+        if (!excelFileName.value) excelRows.value = [];
+      }
+      hourlyDistribution.value = getDefaultDistribution(timeSlots.value);
+      staffList.value.forEach(s => {
+        const newShifts = {};
+        timeSlots.value.forEach(slot => {
+          newShifts[slot.label] = s.shifts[slot.label] || false;
+        });
+        s.shifts = newShifts;
+      });
+      fetchWeather();
+      if (!forecastStartDate.value) {
+        const today = new Date();
+        const start = new Date(today);
+        start.setDate(start.getDate() - 7);
+        forecastStartDate.value = formatDateLocal(start);
+        const end = new Date(today);
+        end.setDate(end.getDate() + 7);
+        forecastEndDate.value = formatDateLocal(end);
+        generateDailyForecasts();
+      } else {
+        updateLastWeekActuals();
+      }
+      nextTick(() => {
+        updateDistributionChart();
+        updateSchedulingChart();
+      });
+    }
+
+    // ==================== Watchers ====================
+    watch(weatherData, () => {
+      nextTick(() => updateWeatherChart());
+    });
+
+    watch(selectedDate, () => {
+      // 日期切换时尝试加载已保存的排班
+      const loaded = loadScheduleForDate();
+      if (!loaded) {
+        // 无保存记录，显示员工池成员（无排班），让用户看到可排班人员
+        staffList.value = employeePool.value.map(emp => {
+          const staff = reactive({
+            name: emp.name,
+            shifts: {},
+            quickStart: '',
+            quickEnd: '',
+            isTemp: false,
+            efficiency: emp.efficiency || 0,
+          });
+          timeSlots.value.forEach(slot => { staff.shifts[slot.label] = false; });
+          return staff;
+        });
+        hourlyDistribution.value = getDefaultDistribution(timeSlots.value);
+      }
+      nextTick(() => {
+        updateWeatherChart();
+        updateDistributionChart();
+        updateSchedulingChart();
+      });
+    });
+
+    watch(hourlyForecastData, () => {
+      nextTick(() => updateSchedulingChart());
+    }, { deep: true });
+
+    watch(efficiencyPerHour, () => {
+      nextTick(() => updateSchedulingChart());
+    });
+
+    watch(() => JSON.stringify(slotGap.value), () => {
+      nextTick(() => updateSchedulingChart());
+    });
+
+    // ==================== 初始化 ====================
+    onMounted(() => {
+      Chart.defaults.font.family = "'Plus Jakarta Sans', 'Noto Sans SC', system-ui, sans-serif";
+      Chart.defaults.color = '#6B6760';
+      hourlyDistribution.value = getDefaultDistribution(timeSlots.value);
+      onStoreChange();
+      // 初始化员工池
+      resetNewPoolEmployee();
+      loadEmployeePool();
+      if (employeePool.value.length === 0) {
+        initDefaultPoolEmployees();
+      }
+      // 尝试加载已保存的排班
+      const loaded = loadScheduleForDate();
+      if (!loaded) {
+        // 无保存记录，显示员工池成员（空班次），让用户看到可排班人员
+        staffList.value = employeePool.value.map(emp => {
+          const staff = reactive({
+            name: emp.name,
+            shifts: {},
+            quickStart: '',
+            quickEnd: '',
+            isTemp: false,
+            efficiency: emp.efficiency || 0,
+          });
+          timeSlots.value.forEach(slot => { staff.shifts[slot.label] = false; });
+          return staff;
+        });
+      }
+      // 优先加载已保存的预估数据
+      loadSavedForecasts();
+      // 加载排班文件夹
+      loadSavedSchedules();
+      nextTick(() => {
+        updateWeatherChart();
+        updateDistributionChart();
+        updateSchedulingChart();
+      });
+    });
+
+    return {
+      // Data
+      brands, selectedBrandIdx, selectedStoreIdx, showSettings,
+      currentBrandStores, selectedStore,
+      weatherData, weatherLoading, weatherError, selectedDate,
+      dailyWeather, hourlyWeather,
+      forecastStartDate, forecastEndDate, dailyForecasts, warehouseTData,
+      excelFileName, excelRows, excelColumns, timeColumnName, excelError,
+      hourlyDistribution,
+      efficiencyPerHour, staffList,
+      timeSlots,
+      cityCoords,
+      // Employee Pool
+      employeePool, showPoolModal, editingPoolIdx, newPoolEmployee,
+      weekDays, autoFillSlotsFromRange, togglePoolSlot, togglePoolDay,
+      addPoolEmployee, removePoolEmployee, editPoolEmployee, cancelPoolEdit,
+      selectAllPoolSlots, clearAllPoolSlots,
+      // Auto-scheduling & save/load
+      autoSchedule, saveScheduleForDate, loadScheduleForDate,
+      timeToMin, minToSlotIdx,
+      // Computed
+      selectedDayForecast, hourlyForecastData,
+      totalLastWeekActual, totalForecast, avgWarehouseT, currentWarehouseT,
+      slotDemand, slotScheduled, slotGap,
+      peakDemand, gapStatus, peakDemandSlot, totalDemandHours,
+      // Methods
+      weatherInfo, getDayOfWeek, getWeatherForDate, getLastWeekDateStr,
+      fetchWeather, generateDailyForecasts,
+      handleExcelUpload, processExcelData,
+      fillWithActuals,
+      addStaff, removeStaff, applyQuickSchedule, clearStaffShifts, clearAllShifts,
+      staffWorkHours,
+      statusColor, statusBg, statusBadgeBg, statusLabel,
+      getDodValue, getDodColor, formatDod, getYoyColor, formatYoy, getYesterdayActual,
+      addBrand, addStore, removeStore, removeBrand,
+      onBrandChange, onStoreChange,
+      showChangeLog, changeLog, lastSaveTime, saveForecastsManual, getForecastAccuracy, getOverallAccuracy, formatAccuracy,
+      getAccuracyColor, exportDailyForecast,
+      showAnnotation, annotationTitle, annotationDesc, openAnnotation, closeAnnotation,
+      savedSchedules, exportScheduling, reExportSchedule, deleteSchedule, loadSavedSchedules,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
