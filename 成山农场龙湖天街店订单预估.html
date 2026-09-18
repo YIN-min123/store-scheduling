@@ -1494,15 +1494,27 @@ createApp({
       if (!weatherData.value) return [];
       const d = weatherData.value.daily;
       const today = formatDateLocal(new Date());
+      // 降水阈值：Open-Meteo ECMWF 模型对毛毛雨过于敏感
+      // precipProb < 60% 的毛雨/微雨 → 降级为阴（对齐中国气象局显示）
+      // precipProb ≥ 60% 的毛雨 → 显示为小雨（CMA 不会报"毛雨"）
+      const drizzleCodes = [51, 53, 55, 56, 57, 61, 66, 67];
       return d.time
-        .map((date, i) => ({
-          date,
-          dayOfWeek: getDayOfWeek(date),
-          weatherCode: d.weather_code[i],
-          tempMax: d.temperature_2m_max[i],
-          tempMin: d.temperature_2m_min[i],
-          precipProb: d.precipitation_probability_max ? d.precipitation_probability_max[i] : 0,
-        }))
+        .map((date, i) => {
+          let code = d.weather_code[i];
+          const precipProb = d.precipitation_probability_max ? d.precipitation_probability_max[i] : 0;
+          if (drizzleCodes.includes(code)) {
+            if (precipProb < 60) code = 3;      // 阴
+            else if ([51, 53, 55].includes(code)) code = 61; // 毛雨→小雨
+          }
+          return {
+            date,
+            dayOfWeek: getDayOfWeek(date),
+            weatherCode: code,
+            tempMax: d.temperature_2m_max[i],
+            tempMin: d.temperature_2m_min[i],
+            precipProb: precipProb,
+          };
+        })
         .filter(w => w.date >= today)
         .slice(0, 7);
     });
@@ -1557,7 +1569,7 @@ createApp({
     }
 
     // 按日期查天气（合并预报+历史）
-    // 降水概率阈值：Open-Meteo 对毛毛雨过于敏感，概率 < 50% 时降级为"阴"
+    // 降水阈值：Open-Meteo ECMWF 对毛毛雨过于敏感，对齐中国气象局显示
     function getWeatherForDate(dateStr) {
       if (!weatherData.value) return null;
       const idx = weatherData.value.daily.time.indexOf(dateStr);
@@ -1565,9 +1577,10 @@ createApp({
       let code = weatherData.value.daily.weather_code[idx];
       const precipProb = weatherData.value.daily.precipitation_probability_max
         ? weatherData.value.daily.precipitation_probability_max[idx] : 0;
-      // 毛毛雨(51-55) / 微雨(61) 且降水概率 < 50% → 视为阴天
-      if (precipProb < 50 && [51, 53, 55, 61].includes(code)) {
-        code = 3;
+      const drizzleCodes = [51, 53, 55, 56, 57, 61, 66, 67];
+      if (drizzleCodes.includes(code)) {
+        if (precipProb < 60) code = 3;      // 阴
+        else if ([51, 53, 55].includes(code)) code = 61; // 毛雨→小雨
       }
       return {
         code: code,
