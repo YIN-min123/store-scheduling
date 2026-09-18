@@ -1870,23 +1870,8 @@ createApp({
         // 更新快照
         savedForecastsMap = {};
         dailyForecasts.value.forEach(d => { savedForecastsMap[d.date] = d.forecast || 0; });
-        
-        // 同时下载 JSON 文件（供推送脚本读取并嵌入 HTML）
-        const forecastMap = {};
-        dailyForecasts.value.forEach(d => { forecastMap[d.date] = d.forecast || 0; });
-        const exportData = { [currentStore]: forecastMap };
-        const jsonStr = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `forecasts_${currentStore}_${formatDateLocal(now)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        alert('预估已保存！JSON文件已下载，请放到推送脚本同目录下。');
+
+        alert('预估已保存！已同步到云端，多人协同自动生效。');
         // Supabase sync
         if (_sb) {
           const sbRows = data.forecasts.map(f => ({
