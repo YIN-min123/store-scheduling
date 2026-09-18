@@ -318,6 +318,20 @@
         <span>{{ selectedStore.businessStart }}-{{ selectedStore.businessEnd }}</span>
       </div>
       <div class="ml-auto flex items-center gap-2">
+        <input type="file" ref="excelFileInput" accept=".xlsx,.xls,.csv"
+          @change="handleExcelUpload" style="display:none;">
+        <button @click="$refs.excelFileInput.click()"
+          class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-blue-50"
+          style="border-color: var(--color-line); color: var(--color-blue, #3B82F6);"
+          title="导入拣货单Excel，自动计算工作日/周末时段订单占比">
+          导入拣货单
+        </button>
+        <span v-if="excelFileName && !excelError" class="text-xs" style="color: var(--color-green, #22C55E);" :title="excelFileName">
+          {{ excelFileName.length > 20 ? excelFileName.slice(0, 17) + '...' : excelFileName }}
+        </span>
+        <span v-if="excelError" class="text-xs" style="color: var(--color-red, #EF4444);" :title="excelError">
+          {{ excelError.length > 30 ? excelError.slice(0, 27) + '...' : excelError }}
+        </span>
         <button @click="showSettings = !showSettings"
           class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-orange-50"
           style="border-color: var(--color-line);">
