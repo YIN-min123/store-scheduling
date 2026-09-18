@@ -271,55 +271,59 @@ def fetch_deployed_forecasts():
 
 
 def update_html_forecasts(content):
-    """读取forecasts JSON文件，与已部署数据合并后嵌入到HTML的savedForecastsData中"""
-    # 查找forecasts JSON文件（在HTML同目录或脚本同目录）
-    html_dir = os.path.dirname(HTML_PATH)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    """从Supabase读取手动预估数据，与已部署数据合并后嵌入到HTML的savedForecastsData中"""
+    SUPABASE_URL = 'https://wjmjwyoadfbaullhhgnw.supabase.co'
+    SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqbWp3eW9hZGZiYXVsbGhoZ253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2OTI5MTIsImV4cCI6MjEwNTI2ODkxMn0.Pqe_0T-rgb-Jx8yX3UUL-XyLhxDND8hAlHhDPm0NeJU'
 
-    forecast_file = None
-    for search_dir in [html_dir, script_dir]:
-        pattern = os.path.join(search_dir, 'forecasts_*.json')
-        files = glob.glob(pattern)
-        if files:
-            files.sort(key=os.path.getmtime, reverse=True)
-            forecast_file = files[0]
-            break
-
-    if not forecast_file:
-        print("[WARN] 未找到forecasts JSON文件，跳过预估数据嵌入")
-        return content
-
-    print(f"[INFO] 读取预估数据: {forecast_file}")
+    # 1. 从Supabase读取手动预估（排除系统预估 _system_）
+    supabase_data = {}
     try:
-        with open(forecast_file, 'r', encoding='utf-8') as f:
-            local_data = json.load(f)
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/forecasts?"
+            f"select=date,store_name,user_name,forecast_value"
+            f"&store_name=eq.龙湖天街店"
+            f"&user_name=neq._system_"
+            f"&forecast_value=gt.0"
+            f"&order=date.desc",
+            headers={
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}'
+            }
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            rows = json.loads(resp.read().decode('utf-8'))
+        for r in rows:
+            store = r['store_name']
+            if store not in supabase_data:
+                supabase_data[store] = {}
+            # 同一日期多条记录取最新（已按date desc排序）
+            if r['date'] not in supabase_data[store]:
+                supabase_data[store][r['date']] = r['forecast_value']
+        sb_count = sum(len(v) for v in supabase_data.values())
+        print(f"[INFO] Supabase手动预估: {sb_count} 条")
     except Exception as e:
-        print(f"[ERROR] 读取forecasts文件失败: {e}")
-        return content
+        print(f"[WARN] Supabase预估获取失败: {e}")
 
-    # 从已部署HTML获取基准数据（多人多设备合并的关键）
-    print("[INFO] 从GitHub Pages获取已部署预估数据...")
+    # 2. 从已部署HTML获取基准数据（向后兼容）
     deployed_data = fetch_deployed_forecasts()
     if deployed_data:
-        deployed_count = sum(len(v) for v in deployed_data.values())
-        print(f"[INFO] 已部署数据: {deployed_count} 条")
-    else:
-        deployed_count = 0
-        print("[INFO] 无已部署数据，使用本地数据作为基准")
+        print(f"[INFO] 已部署HTML预估: {sum(len(v) for v in deployed_data.values())} 条")
 
-    # 合并：以已部署数据为底，本地JSON覆盖同键值
+    # 3. 合并：已部署为底，Supabase覆盖
     merged = {}
     for store, dates in deployed_data.items():
         merged[store] = dict(dates)
-    for store, dates in local_data.items():
+    for store, dates in supabase_data.items():
         if store not in merged:
             merged[store] = {}
         for date, val in dates.items():
             merged[store][date] = val
 
     merged_count = sum(len(v) for v in merged.values())
-    local_count = sum(len(v) for v in local_data.values())
-    print(f"[OK] 合并完成: 已部署{deployed_count}条 + 本地{local_count}条 → 共{merged_count}条")
+    if merged_count == 0:
+        print("[WARN] 无预估数据可嵌入")
+        return content
+    print(f"[OK] 合并预估数据: 共{merged_count}条 ({len(merged)}个门店)")
 
     # 构建新的savedForecastsData JS代码
     js_data = json.dumps(merged, ensure_ascii=False, indent=2)
