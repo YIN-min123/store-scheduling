@@ -400,7 +400,10 @@
               <span class="font-semibold font-mono" style="color: var(--theme-weather);">{{ Math.round(day.tempMax) }}°</span>
               <span class="font-mono" style="color: var(--color-muted);">{{ Math.round(day.tempMin) }}°</span>
             </div>
-            <div class="text-xs font-mono mt-1" style="color: var(--color-blue);">{{ day.precipProb }}%</div>
+            <div class="text-xs font-mono mt-1" style="color: var(--color-blue);">
+              <span v-if="day.precipMM > 0">{{ day.precipMM }}mm</span>
+              <span v-else-if="day.precipProb > 0">{{ day.precipProb }}%</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1456,21 +1459,21 @@ createApp({
       3: { label: '阴', color: '#64748B', bg: '#F1F5F9' },
       45: { label: '雾', color: '#94A3B8', bg: '#F1F5F9' },
       48: { label: '雾凇', color: '#94A3B8', bg: '#F1F5F9' },
-      51: { label: '微毛雨', color: '#3B82F6', bg: '#DBEAFE' },
-      53: { label: '毛雨', color: '#3B82F6', bg: '#DBEAFE' },
-      55: { label: '密毛雨', color: '#2563EB', bg: '#DBEAFE' },
-      56: { label: '冻毛雨', color: '#3B82F6', bg: '#DBEAFE' },
-      57: { label: '密冻雨', color: '#2563EB', bg: '#DBEAFE' },
-      61: { label: '微雨', color: '#3B82F6', bg: '#DBEAFE' },
-      63: { label: '雨', color: '#2563EB', bg: '#DBEAFE' },
+      51: { label: '小雨', color: '#3B82F6', bg: '#DBEAFE' },
+      53: { label: '小雨', color: '#3B82F6', bg: '#DBEAFE' },
+      55: { label: '小雨', color: '#2563EB', bg: '#DBEAFE' },
+      56: { label: '冻雨', color: '#3B82F6', bg: '#DBEAFE' },
+      57: { label: '冻雨', color: '#2563EB', bg: '#DBEAFE' },
+      61: { label: '小雨', color: '#3B82F6', bg: '#DBEAFE' },
+      63: { label: '中雨', color: '#2563EB', bg: '#DBEAFE' },
       65: { label: '大雨', color: '#1D4ED8', bg: '#DBEAFE' },
       66: { label: '冻雨', color: '#3B82F6', bg: '#DBEAFE' },
-      67: { label: '密冻雨', color: '#1D4ED8', bg: '#DBEAFE' },
-      71: { label: '微雪', color: '#06B6D4', bg: '#CFFAFE' },
-      73: { label: '雪', color: '#06B6D4', bg: '#CFFAFE' },
+      67: { label: '冻雨', color: '#1D4ED8', bg: '#DBEAFE' },
+      71: { label: '小雪', color: '#06B6D4', bg: '#CFFAFE' },
+      73: { label: '中雪', color: '#06B6D4', bg: '#CFFAFE' },
       75: { label: '大雪', color: '#0891B2', bg: '#CFFAFE' },
       77: { label: '雪粒', color: '#06B6D4', bg: '#CFFAFE' },
-      80: { label: '微阵雨', color: '#3B82F6', bg: '#DBEAFE' },
+      80: { label: '小阵雨', color: '#3B82F6', bg: '#DBEAFE' },
       81: { label: '阵雨', color: '#2563EB', bg: '#DBEAFE' },
       82: { label: '强阵雨', color: '#1D4ED8', bg: '#DBEAFE' },
       85: { label: '阵雪', color: '#06B6D4', bg: '#CFFAFE' },
@@ -1494,27 +1497,16 @@ createApp({
       if (!weatherData.value) return [];
       const d = weatherData.value.daily;
       const today = formatDateLocal(new Date());
-      // 降水阈值：Open-Meteo ECMWF 模型对毛毛雨过于敏感
-      // precipProb < 60% 的毛雨/微雨 → 降级为阴（对齐中国气象局显示）
-      // precipProb ≥ 60% 的毛雨 → 显示为小雨（CMA 不会报"毛雨"）
-      const drizzleCodes = [51, 53, 55, 56, 57, 61, 66, 67];
       return d.time
-        .map((date, i) => {
-          let code = d.weather_code[i];
-          const precipProb = d.precipitation_probability_max ? d.precipitation_probability_max[i] : 0;
-          if (drizzleCodes.includes(code)) {
-            if (precipProb < 60) code = 3;      // 阴
-            else if ([51, 53, 55].includes(code)) code = 61; // 毛雨→小雨
-          }
-          return {
-            date,
-            dayOfWeek: getDayOfWeek(date),
-            weatherCode: code,
-            tempMax: d.temperature_2m_max[i],
-            tempMin: d.temperature_2m_min[i],
-            precipProb: precipProb,
-          };
-        })
+        .map((date, i) => ({
+          date,
+          dayOfWeek: getDayOfWeek(date),
+          weatherCode: d.weather_code[i],
+          tempMax: d.temperature_2m_max[i],
+          tempMin: d.temperature_2m_min[i],
+          precipProb: d.precipitation_probability_max ? d.precipitation_probability_max[i] : 0,
+          precipMM: d.precipitation_sum ? d.precipitation_sum[i] : 0,
+        }))
         .filter(w => w.date >= today)
         .slice(0, 7);
     });
@@ -1550,7 +1542,7 @@ createApp({
         // 预报+历史（past_days=22 覆盖表格全部日期+上周同期，forecast_days=7 当日+未来6天=近7天）
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}` +
           `&hourly=temperature_2m,precipitation_probability,weather_code` +
-          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum` +
           `&timezone=Asia%2FShanghai&past_days=22&forecast_days=7`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('API返回错误');
@@ -1569,21 +1561,12 @@ createApp({
     }
 
     // 按日期查天气（合并预报+历史）
-    // 降水阈值：Open-Meteo ECMWF 对毛毛雨过于敏感，对齐中国气象局显示
     function getWeatherForDate(dateStr) {
       if (!weatherData.value) return null;
       const idx = weatherData.value.daily.time.indexOf(dateStr);
       if (idx < 0) return null;
-      let code = weatherData.value.daily.weather_code[idx];
-      const precipProb = weatherData.value.daily.precipitation_probability_max
-        ? weatherData.value.daily.precipitation_probability_max[idx] : 0;
-      const drizzleCodes = [51, 53, 55, 56, 57, 61, 66, 67];
-      if (drizzleCodes.includes(code)) {
-        if (precipProb < 60) code = 3;      // 阴
-        else if ([51, 53, 55].includes(code)) code = 61; // 毛雨→小雨
-      }
       return {
-        code: code,
+        code: weatherData.value.daily.weather_code[idx],
         max: weatherData.value.daily.temperature_2m_max[idx],
         min: weatherData.value.daily.temperature_2m_min[idx],
       };
