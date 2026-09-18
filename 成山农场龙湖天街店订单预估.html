@@ -385,8 +385,13 @@
       <!-- 近7天预报卡片（当日+未来6天，不联动日期选择） -->
       <div v-if="dailyWeather.length" class="flex gap-3 overflow-x-auto pb-2 scroll-x justify-center">
         <div v-for="day in dailyWeather" :key="day.date"
-          class="weather-card flex-shrink-0 w-28 sm:w-32 p-3 rounded-xl border-2"
-          style="border-color: var(--color-line); background: var(--color-surface);">
+          @click="selectedWeatherDate = day.date"
+          class="weather-card flex-shrink-0 w-28 sm:w-32 p-3 rounded-xl border-2 cursor-pointer transition-all"
+          :style="{
+            borderColor: selectedWeatherDate === day.date ? 'var(--theme-weather, #F59E0B)' : 'var(--color-line)',
+            background: selectedWeatherDate === day.date ? 'rgba(245,158,11,0.06)' : 'var(--color-surface)',
+            boxShadow: selectedWeatherDate === day.date ? '0 2px 8px rgba(245,158,11,0.15)' : 'none'
+          }">
           <div class="text-center">
             <div class="text-xs font-semibold font-mono">{{ day.date.slice(5) }}</div>
             <div class="text-xs" style="color: var(--color-muted);">{{ day.dayOfWeek }}</div>
@@ -412,7 +417,7 @@
       <div v-if="hourlyWeather.length" class="mt-5">
         <div class="flex items-center justify-center gap-2 mb-3">
           <h3 class="text-sm font-semibold">当日时段天气</h3>
-          <span class="text-xs font-mono" style="color: var(--color-muted);">{{ selectedDate }}</span>
+          <span class="text-xs font-mono" style="color: var(--color-muted);">{{ selectedWeatherDate || selectedDate }}</span>
         </div>
         <div style="position: relative; height: 280px;">
           <canvas id="weatherChart"></canvas>
@@ -1451,6 +1456,7 @@ createApp({
     const weatherLoading = ref(false);
     const weatherError = ref('');
     const selectedDate = ref('');
+    const selectedWeatherDate = ref('');
 
     const wmoMap = {
       0: { label: '晴', color: '#F59E0B', bg: '#FEF3C7' },
@@ -1512,7 +1518,8 @@ createApp({
     });
 
     const hourlyWeather = computed(() => {
-      if (!weatherData.value || !selectedDate.value) return [];
+      const dateStr = selectedWeatherDate.value || selectedDate.value;
+      if (!weatherData.value || !dateStr) return [];
       const h = weatherData.value.hourly;
       const store = selectedStore.value;
       const bs = store ? parseInt(store.businessStart.split(':')[0]) : 0;
@@ -1524,7 +1531,7 @@ createApp({
         precipProb: h.precipitation_probability ? h.precipitation_probability[i] : 0,
         weatherCode: h.weather_code[i],
       })).filter(w => {
-        if (!w.time.startsWith(selectedDate.value)) return false;
+        if (!w.time.startsWith(dateStr)) return false;
         const hr = parseInt(w.hour.split(':')[0]);
         return hr >= bs && hr < be;
       });
@@ -1548,8 +1555,12 @@ createApp({
         if (!res.ok) throw new Error('API返回错误');
         weatherData.value = await res.json();
         const dates = weatherData.value.daily.time;
+        // 初始化天气选中日期为今天
+        const todayStr = formatDateLocal(new Date());
+        if (!selectedWeatherDate.value || !dates.includes(selectedWeatherDate.value)) {
+          selectedWeatherDate.value = dates.includes(todayStr) ? todayStr : dates[dates.length - 7] || dates[0];
+        }
         if (dates.length && !dates.includes(selectedDate.value)) {
-          const todayStr = formatDateLocal(new Date());
           selectedDate.value = dates.includes(todayStr) ? todayStr : dates[dates.length - 7] || dates[0];
         }
       } catch (e) {
@@ -3531,7 +3542,7 @@ createApp({
       // Data
       brands, selectedBrandIdx, selectedStoreIdx, showSettings,
       currentBrandStores, selectedStore,
-      weatherData, weatherLoading, weatherError, selectedDate,
+      weatherData, weatherLoading, weatherError, selectedDate, selectedWeatherDate,
       dailyWeather, hourlyWeather,
       forecastStartDate, forecastEndDate, dailyForecasts, warehouseTData,
       excelFileName, excelRows, excelColumns, timeColumnName, excelError,
