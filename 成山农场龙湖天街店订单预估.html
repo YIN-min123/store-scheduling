@@ -3460,6 +3460,10 @@ createApp({
       nextTick(() => updateWeatherChart());
     });
 
+    watch(selectedWeatherDate, () => {
+      nextTick(() => updateWeatherChart());
+    });
+
     watch(selectedDate, () => {
       // 日期切换时尝试加载已保存的排班
       const loaded = loadScheduleForDate();
