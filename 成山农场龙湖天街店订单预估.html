@@ -284,7 +284,6 @@
       margin-top: 2px;
     }
   </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="app" v-cloak>
@@ -1145,62 +1144,6 @@
 <script>
 const { createApp, ref, reactive, computed, watch, onMounted, nextTick } = Vue;
 
-    // ==================== Supabase Multi-User Sync ====================
-    const SUPABASE_URL = 'https://wjmjwyoadfbaullhhgnw.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqbWp3eW9hZGZiYXVsbGhoZ253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2OTI5MTIsImV4cCI6MjEwNTI2ODkxMn0.Pqe_0T-rgb-Jx8yX3UUL-XyLhxDND8hAlHhDPm0NeJU';
-    let _sb = null;
-    try {
-      if (window.supabase) {
-        _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log('[Supabase] Client initialized');
-      }
-    } catch(e) { console.warn('[Supabase] Init failed:', e); }
-
-    // Generic: upsert a key-value blob to Supabase `forecasts` table
-    // We use a single "kv_store" approach: table=forecasts with user_name='_shared_'
-    async function sbUpsert(storeName, dataType, jsonData) {
-      if (!_sb) return;
-      try {
-        await _sb.from('forecasts').upsert({
-          date: new Date().toISOString().slice(0, 10),
-          store_name: storeName,
-          user_name: '_shared_' + '_' + dataType,
-          forecast_value: 0,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'date,store_name,user_name' });
-        // Store actual JSON in a companion approach: use schedules table for blobs
-        // Actually let's use a simpler approach - store in forecasts table with special user_name
-        console.log('[Supabase] Upserted', storeName, dataType);
-      } catch(e) { console.warn('[Supabase] Upsert error:', e); }
-    }
-
-    // Sync: after localStorage save, also push to Supabase
-    function sbSyncSave(storeName, dataType, jsonData) {
-      if (!_sb) return;
-      // Use the schedules table for flexible blob storage
-      // We store each save as a row: date=today, store_name=store, employee_name=dataType, role='blob', time_slot=JSON
-      // But JSON can be large... let's use a dedicated approach
-      // Actually, simplest: use Supabase RPC or just upsert to a key-value pattern
-      // For now, fire-and-forget upsert
-      sbUpsert(storeName, dataType, jsonData).catch(() => {});
-    }
-
-    // Load: fetch shared data from Supabase on page load
-    async function sbLoadShared(storeName) {
-      if (!_sb) return null;
-      try {
-        const { data, error } = await _sb
-          .from('forecasts')
-          .select('*')
-          .eq('store_name', storeName)
-          .order('updated_at', { ascending: false })
-          .limit(50);
-        if (error) { console.warn('[Supabase] Load error:', error); return null; }
-        return data;
-      } catch(e) { console.warn('[Supabase] Load error:', e); return null; }
-    }
-
-
 createApp({
   setup() {
     // ==================== 城市坐标 ====================
@@ -1881,19 +1824,6 @@ createApp({
         URL.revokeObjectURL(url);
         
         alert('预估已保存！JSON文件已下载，请放到推送脚本同目录下。');
-        
-        // Sync to Supabase for multi-user sharing
-        if (_sb) {
-          const sbForecasts = data.forecasts.map(f => ({
-            date: f.date,
-            store_name: currentStore,
-            user_name: 'shared',
-            forecast_value: f.forecast || 0
-          }));
-          _sb.from('forecasts').upsert(sbForecasts, { onConflict: 'date,store_name,user_name' })
-            .then(() => console.log('[Supabase] Forecasts synced'))
-            .catch(e => console.warn('[Supabase] Forecast sync failed:', e));
-        }
       } catch(e) { 
         console.error('保存失败:', e);
         alert('保存失败，请重试');
@@ -1945,27 +1875,6 @@ createApp({
             }
           });
           console.log('从嵌入数据加载了', Object.keys(embedded).length, '条预估');
-        }
-        // Also try loading from Supabase (multi-user shared data)
-        if (_sb && currentStore) {
-          _sb.from('forecasts')
-            .select('date, forecast_value')
-            .eq('store_name', currentStore)
-            .eq('user_name', 'shared')
-            .then(({ data: sbData, error }) => {
-              if (error || !sbData || !sbData.length) return;
-              console.log('[Supabase] Loaded', sbData.length, 'shared forecasts');
-              const sbMap = {};
-              sbData.forEach(r => { sbMap[r.date] = r.forecast_value; });
-              // Merge: Supabase data overrides if newer
-              dailyForecasts.value.forEach(d => {
-                if (sbMap[d.date] !== undefined && sbMap[d.date] > 0) {
-                  d.forecast = sbMap[d.date];
-                  savedForecastsMap[d.date] = sbMap[d.date];
-                }
-              });
-            })
-            .catch(e => console.warn('[Supabase] Forecast load failed:', e));
         }
         const logRaw = localStorage.getItem(storagePrefix.value + 'orderForecast_log');
         if (logRaw) changeLog.value = JSON.parse(logRaw);
@@ -2475,19 +2384,6 @@ createApp({
     function saveEmployeePool() {
       try {
         localStorage.setItem(storagePrefix.value + 'employee_pool', JSON.stringify(employeePool.value));
-        // Sync to Supabase
-        if (_sb) {
-          const store = selectedStore.value?.name || '';
-          _sb.from('schedules').upsert({
-            date: new Date().toISOString().slice(0, 10),
-            store_name: store,
-            employee_name: '_employee_pool_',
-            role: 'config',
-            time_slot: JSON.stringify(employeePool.value),
-            status: 'active'
-          }, { onConflict: 'date,store_name,employee_name,role' })
-            .catch(e => console.warn('[Supabase] Employee pool sync failed:', e));
-        }
       } catch (e) { console.error('保存员工池失败:', e); }
     }
     function loadEmployeePool() {
@@ -3038,18 +2934,6 @@ createApp({
           savedAt: new Date().toISOString(),
         };
         localStorage.setItem(storagePrefix.value + 'scheduling_by_date', JSON.stringify(data));
-        // Sync to Supabase
-        if (_sb) {
-          _sb.from('schedules').upsert({
-            date: date,
-            store_name: store,
-            employee_name: '_schedule_by_date_',
-            role: 'schedule',
-            time_slot: JSON.stringify(data[key]),
-            status: 'active'
-          }, { onConflict: 'date,store_name,employee_name,role' })
-            .catch(e => console.warn('[Supabase] Schedule sync failed:', e));
-        }
       } catch (e) { console.error('保存排班失败:', e); }
     }
 
@@ -3269,19 +3153,6 @@ createApp({
         folder.sort((a, b) => b.date.localeCompare(a.date));
         localStorage.setItem(storagePrefix.value + 'scheduling_folder', JSON.stringify(folder));
         savedSchedules.value = folder;
-        // Sync to Supabase
-        if (_sb) {
-          const store = schedule.store || '';
-          _sb.from('schedules').upsert({
-            date: schedule.date,
-            store_name: store,
-            employee_name: '_folder_' + schedule.date,
-            role: 'folder',
-            time_slot: JSON.stringify(schedule),
-            status: 'active'
-          }, { onConflict: 'date,store_name,employee_name,role' })
-            .catch(e => console.warn('[Supabase] Folder sync failed:', e));
-        }
       } catch (e) {
         console.error('保存排班失败:', e);
       }
