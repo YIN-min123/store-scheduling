@@ -1557,12 +1557,20 @@ createApp({
     }
 
     // 按日期查天气（合并预报+历史）
+    // 降水概率阈值：Open-Meteo 对毛毛雨过于敏感，概率 < 50% 时降级为"阴"
     function getWeatherForDate(dateStr) {
       if (!weatherData.value) return null;
       const idx = weatherData.value.daily.time.indexOf(dateStr);
       if (idx < 0) return null;
+      let code = weatherData.value.daily.weather_code[idx];
+      const precipProb = weatherData.value.daily.precipitation_probability_max
+        ? weatherData.value.daily.precipitation_probability_max[idx] : 0;
+      // 毛毛雨(51-55) / 微雨(61) 且降水概率 < 50% → 视为阴天
+      if (precipProb < 50 && [51, 53, 55, 61].includes(code)) {
+        code = 3;
+      }
       return {
-        code: weatherData.value.daily.weather_code[idx],
+        code: code,
         max: weatherData.value.daily.temperature_2m_max[idx],
         min: weatherData.value.daily.temperature_2m_min[idx],
       };
