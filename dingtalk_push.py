@@ -39,6 +39,168 @@ WEATHER_LON = 108.94
 STORES = ['龙湖天街店']
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = r"C:\Users\TBSG\.qoderwork\workspace\mu3wgi8swufexcje"
+ACCUMULATED_DATA_PATH = os.path.join(SCRIPT_DIR, 'daily_actuals.json')
+
+
+# ==================== 数据累积器 ====================
+def load_accumulated_data():
+    """从 daily_actuals.json 加载历史累积数据"""
+    if not os.path.exists(ACCUMULATED_DATA_PATH):
+        return {}
+    try:
+        with open(ACCUMULATED_DATA_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[WARN] 累积数据读取失败: {e}")
+        return {}
+
+
+def save_accumulated_data(data):
+    """保存累积数据到 daily_actuals.json"""
+    try:
+        with open(ACCUMULATED_DATA_PATH, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        total = sum(len(v) if isinstance(v, dict) and isinstance(list(v.values())[0] if v else {}, dict) else 1
+                    for v in data.values()) if data else 0
+        print(f"[OK] 累积数据已保存: {ACCUMULATED_DATA_PATH}")
+    except Exception as e:
+        print(f"[WARN] 累积数据保存失败: {e}")
+
+
+def extract_all_data_from_html(content):
+    """从HTML中提取 storeDailyData / warehouseTData / brandDailyData 全部数据"""
+    result = {}
+
+    # storeDailyData: 可能有多个门店子对象
+    sdm = re.search(r"let\s+storeDailyData\s*=\s*\{(.*?)\};", content, re.DOTALL)
+    if sdm:
+        block = sdm.group(1)
+        # 提取每个门店的数据块
+        store_blocks = re.findall(r"'([^']+)'\s*:\s*\{([^}]+)\}", block)
+        for store_name, inner in store_blocks:
+            entries = re.findall(r"'(\d{4}-\d{2}-\d{2})'\s*:\s*(\d+)", inner)
+            if store_name not in result:
+                result[store_name] = {}
+            result[store_name]['storeDailyData'] = {d: int(v) for d, v in entries}
+
+    # warehouseTData: 同样可能有多个门店
+    wtm = re.search(r"let\s+warehouseTData\s*=\s*\{(.*?)\};", content, re.DOTALL)
+    if wtm:
+        block = wtm.group(1)
+        store_blocks = re.findall(r"'([^']+)'\s*:\s*\{([^}]+)\}", block)
+        for store_name, inner in store_blocks:
+            entries = re.findall(r"'(\d{4}-\d{2}-\d{2})'\s*:\s*([\d.]+)", inner)
+            if store_name not in result:
+                result[store_name] = {}
+            result[store_name]['warehouseTData'] = {d: float(v) for d, v in entries}
+
+    # brandDailyData
+    bdm = re.search(r"let\s+brandDailyData\s*=\s*\{(.*?)\};", content, re.DOTALL)
+    if bdm:
+        block = bdm.group(1)
+        brand_blocks = re.findall(r"'([^']+)'\s*:\s*\{([^}]+)\}", block)
+        for brand_name, inner in brand_blocks:
+            entries = re.findall(r"'(\d{4}-\d{2}-\d{2})'\s*:\s*(\d+)", inner)
+            if 'brandDailyData' not in result:
+                result['brandDailyData'] = {}
+            result['brandDailyData'][brand_name] = {d: int(v) for d, v in entries}
+
+    return result
+
+
+def merge_accumulated_into_html(content, accumulated):
+    """将累积数据合并到HTML中，补齐缺失日期"""
+    if not accumulated:
+        return content
+
+    # 合并 storeDailyData
+    for store_name, store_data in accumulated.items():
+        if store_name in ('brandDailyData',):
+            continue
+        if 'storeDailyData' not in store_data:
+            continue
+
+        sdm = re.search(
+            rf"let\s+storeDailyData\s*=\s*\{{.*?'{re.escape(store_name)}'\s*:\s*\{{[^}}]*\}}",
+            content, re.DOTALL
+        )
+        if sdm:
+            old = sdm.group(0)
+            new_block = old
+            for date_str, val in sorted(store_data['storeDailyData'].items()):
+                date_pat = rf"'{re.escape(date_str)}'\s*:\s*\d+"
+                if re.search(date_pat, new_block):
+                    new_block = re.sub(date_pat, f"'{date_str}': {val}", new_block)
+                else:
+                    new_block, n = re.subn(r",\s*\}\s*$", f", '{date_str}': {val}}}", new_block)
+                    if n == 0:
+                        new_block = re.sub(r"\}\s*$", f", '{date_str}': {val}}}", new_block)
+            if new_block != old:
+                content = content.replace(old, new_block)
+
+        # warehouseTData
+        if 'warehouseTData' in store_data:
+            wtm = re.search(
+                rf"let\s+warehouseTData\s*=\s*\{{.*?'{re.escape(store_name)}'\s*:\s*\{{[^}}]*\}}",
+                content, re.DOTALL
+            )
+            if wtm:
+                old = wtm.group(0)
+                new_block = old
+                for date_str, val in sorted(store_data['warehouseTData'].items()):
+                    wt_pat = rf"'{re.escape(date_str)}'\s*:\s*[\d.]+"
+                    if re.search(wt_pat, new_block):
+                        new_block = re.sub(wt_pat, f"'{date_str}': {val}", new_block)
+                    else:
+                        new_block, n = re.subn(r",\s*\}\s*$", f", '{date_str}': {val}}}", new_block)
+                        if n == 0:
+                            new_block = re.sub(r"\}\s*$", f", '{date_str}': {val}}}", new_block)
+                if new_block != old:
+                    content = content.replace(old, new_block)
+
+    # brandDailyData
+    if 'brandDailyData' in accumulated:
+        for brand_name, brand_dates in accumulated['brandDailyData'].items():
+            bdm = re.search(
+                rf"let\s+brandDailyData\s*=\s*\{{.*?'{re.escape(brand_name)}'\s*:\s*\{{[^}}]*\}}",
+                content, re.DOTALL
+            )
+            if bdm:
+                old = bdm.group(0)
+                new_block = old
+                for date_str, val in sorted(brand_dates.items()):
+                    bd_pat = rf"'{re.escape(date_str)}'\s*:\s*\d+"
+                    if re.search(bd_pat, new_block):
+                        new_block = re.sub(bd_pat, f"'{date_str}': {val}", new_block)
+                    else:
+                        new_block, n = re.subn(r",\s*\}\s*$", f", '{date_str}': {val}}}", new_block)
+                        if n == 0:
+                            new_block = re.sub(r"\}\s*$", f", '{date_str}': {val}}}", new_block)
+                if new_block != old:
+                    content = content.replace(old, new_block)
+
+    return content
+
+
+def detect_date_gaps(content):
+    """检测 storeDailyData 中的日期断层，提醒补齐"""
+    gaps = []
+    sdm = re.search(r"let\s+storeDailyData\s*=\s*\{.*?'龙湖天街店'\s*:\s*\{([^}]*)\}", content, re.DOTALL)
+    if not sdm:
+        return gaps
+    dates = sorted(re.findall(r"'(\d{4}-\d{2}-\d{2})'", sdm.group(1)))
+    if len(dates) < 2:
+        return gaps
+    for i in range(1, len(dates)):
+        prev = datetime.strptime(dates[i-1], '%Y-%m-%d')
+        curr = datetime.strptime(dates[i], '%Y-%m-%d')
+        delta = (curr - prev).days
+        if delta > 1:
+            missing = []
+            for d in range(1, delta):
+                missing.append((prev + timedelta(days=d)).strftime('%Y-%m-%d'))
+            gaps.append({'after': dates[i-1], 'before': dates[i], 'missing': missing})
+    return gaps
 
 
 # ==================== 天气获取 ====================
@@ -668,9 +830,23 @@ def main():
     print(f"[INFO] 门店订单: {orders}, 仓T: {warehouse_t}, 品牌合计: {brand_orders or '未指定'}")
     print(f"[INFO] HTML路径: {HTML_PATH}")
 
+    # Step 0: 加载累积数据并补齐HTML缺失日期
+    accumulated = load_accumulated_data()
+    if accumulated:
+        acc_count = sum(
+            len(v.get('storeDailyData', {})) + len(v.get('warehouseTData', {}))
+            for k, v in accumulated.items() if k != 'brandDailyData'
+        )
+        print(f"[INFO] 累积数据: {acc_count} 条历史数据待合并")
+
     # Step 1: 读取HTML
     with open(HTML_PATH, 'r', encoding='utf-8') as f:
         content = f.read()
+
+    # Step 1.5: 将累积数据合并到HTML（补齐之前未推送的日期）
+    if accumulated:
+        content = merge_accumulated_into_html(content, accumulated)
+        print("[OK] 累积数据已合并到HTML")
 
     # Step 2: 获取天气
     print("[INFO] 获取天气预报...")
@@ -678,7 +854,7 @@ def main():
     if weather:
         print(f"[OK] 获取到 {len(weather)} 天天气")
 
-    # Step 3: 更新HTML数据
+    # Step 3: 更新HTML数据（写入当日新数据）
     print("[INFO] 更新HTML数据...")
     content = update_html_data(content, target_date, orders, warehouse_t, brand_orders)
     content = update_html_weather(content, weather)
@@ -687,6 +863,21 @@ def main():
     # Step 3.5: 运行预估模型，动态更新系统预估（当日锁定，未来校准）
     print("[INFO] 更新模型系统预估...")
     content = update_model_forecast(content)
+
+    # Step 3.6: 从HTML提取全部数据并保存到累积JSON（下次运行时自动补齐）
+    all_data = extract_all_data_from_html(content)
+    save_accumulated_data(all_data)
+
+    # Step 3.7: 检测日期断层并警告
+    gaps = detect_date_gaps(content)
+    if gaps:
+        print("\n⚠️  ========== 日期断层警告 ==========")
+        for g in gaps:
+            print(f"  {g['after']} → {g['before']} 缺失: {', '.join(g['missing'])}")
+        print(f"  请在下次运行时补齐以上日期的实际订单和仓T")
+        print("  ====================================\n")
+    else:
+        print("[OK] 日期连续性检查通过，无断层")
 
     # Step 4: 写回HTML
     with open(HTML_PATH, 'w', encoding='utf-8') as f:

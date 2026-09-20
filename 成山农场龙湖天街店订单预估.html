@@ -1343,7 +1343,7 @@ createApp({
     // 成山农场门店级每日订单汇总（2026.8.8-9.16）
     // FBI看板1796001 门店级每日订单 (2026.8.8-9.16)
     let storeDailyData = {
-      '龙湖天街店': {'2026-08-08':377,'2026-08-09':380,'2026-08-10':354,'2026-08-11':251,'2026-08-12':267,'2026-08-13':315,'2026-08-14':294,'2026-08-15':389,'2026-08-16':352,'2026-08-17':283,'2026-08-18':347,'2026-08-19':281,'2026-08-20':317,'2026-08-21':343,'2026-08-22':465,'2026-08-23':417,'2026-08-24':348,'2026-08-25':370,'2026-08-26':378,'2026-08-27':406,'2026-08-28':398,'2026-08-29':393,'2026-08-30':414,'2026-08-31':347,'2026-09-01':378,'2026-09-02':333,'2026-09-03':335,'2026-09-04':303,'2026-09-05':392,'2026-09-06':412,'2026-09-07':324,'2026-09-08':365,'2026-09-09':414,'2026-09-10':365,'2026-09-11':329,'2026-09-12':376,'2026-09-13':368,'2026-09-14':311,'2026-09-15':306,'2026-09-16': 306, '2026-09-17': 253, '2026-09-19': 370},
+      '龙湖天街店': {'2026-08-08':377,'2026-08-09':380,'2026-08-10':354,'2026-08-11':251,'2026-08-12':267,'2026-08-13':315,'2026-08-14':294,'2026-08-15':389,'2026-08-16':352,'2026-08-17':283,'2026-08-18':347,'2026-08-19':281,'2026-08-20':317,'2026-08-21':343,'2026-08-22':465,'2026-08-23':417,'2026-08-24':348,'2026-08-25':370,'2026-08-26':378,'2026-08-27':406,'2026-08-28':398,'2026-08-29':393,'2026-08-30':414,'2026-08-31':347,'2026-09-01':378,'2026-09-02':333,'2026-09-03':335,'2026-09-04':303,'2026-09-05':392,'2026-09-06':412,'2026-09-07':324,'2026-09-08':365,'2026-09-09':414,'2026-09-10':365,'2026-09-11':329,'2026-09-12':376,'2026-09-13':368,'2026-09-14':311,'2026-09-15':306,'2026-09-16': 306, '2026-09-17': 253, '2026-09-18': 265, '2026-09-19': 370},
     };
     // 模型预估历史（推送脚本每日锁定当日预估值，过去日期不再修改）
     const modelForecastHistory = {
@@ -1402,7 +1402,7 @@ createApp({
         '2026-09-10': 20.18, '2026-09-11': 14.45, '2026-09-12': 19.07,
         '2026-09-13': 36.65, '2026-09-14': 9.99, '2026-09-15': 12.39,
         '2026-09-16': 9.31
-      , '2026-09-17': 12.31, '2026-09-19': 28.86},
+      , '2026-09-17': 12.31, '2026-09-19': 28.86, '2026-09-18': 9.86},
     };
 
     // Open-Meteo 天气预报 (西安 34.26,108.94) 更新于 2026-09-17
@@ -1431,6 +1431,10 @@ createApp({
           "2026-09-24": 399
         }
       };
+
+    // localStorage 持久化的实际订单 & 仓T（跨Excel上传保留历史数据）
+    const savedActualOrders = ref({});
+    const savedWarehouseT = ref({});
 
     const brands = ref([
       {
@@ -1751,7 +1755,7 @@ createApp({
       const d = new Date(dateStr + 'T00:00:00');
       d.setDate(d.getDate() - 1);
       const yStr = formatDateLocal(d);
-      return excelDailyTotals.value[yStr] ?? null;
+      return excelDailyTotals.value[yStr] ?? savedActualOrders.value[yStr] ?? null;
     }
 
     // 环比：过去日期用实际订单，当日及未来用预估订单 vs 昨日实际（负值红色）
@@ -1854,7 +1858,17 @@ createApp({
         brand: currentBrand,
         store: currentStore,
         forecasts: dailyForecasts.value.map(d => ({ date: d.date, forecast: d.forecast || 0 })),
+        // 同步保存实际订单和仓T到localStorage，供后续补齐
+        actualOrders: {},
+        warehouseT: {},
       };
+      dailyForecasts.value.forEach(d => {
+        if (d.actualOrders != null) data.actualOrders[d.date] = d.actualOrders;
+        if (warehouseTData[d.date] != null) data.warehouseT[d.date] = warehouseTData[d.date];
+      });
+      // 合并到全局持久化存储
+      Object.assign(savedActualOrders.value, data.actualOrders);
+      Object.assign(savedWarehouseT.value, data.warehouseT);
       
       try {
         localStorage.setItem(storagePrefix.value + 'orderForecast_save', JSON.stringify(data));
@@ -1923,6 +1937,9 @@ createApp({
                 if (savedMap[d.date] !== undefined) d.forecast = savedMap[d.date];
               });
             }
+            // 加载历史实际订单和仓T（用于后续生成时补齐缺失数据）
+            if (data.actualOrders) Object.assign(savedActualOrders.value, data.actualOrders);
+            if (data.warehouseT) Object.assign(savedWarehouseT.value, data.warehouseT);
             return; // localStorage 有数据就直接返回
           }
         }
@@ -1939,6 +1956,11 @@ createApp({
         }
         const logRaw = localStorage.getItem(storagePrefix.value + 'orderForecast_log');
         if (logRaw) changeLog.value = JSON.parse(logRaw);
+        // 加载独立存储的实际订单历史（onStoreChange时增量保存）
+        const actualsRaw = localStorage.getItem(storagePrefix.value + 'orderForecast_actuals');
+        if (actualsRaw) {
+          try { Object.assign(savedActualOrders.value, JSON.parse(actualsRaw)); } catch(e) {}
+        }
       } catch(e) { console.error('加载保存数据失败:', e); }
     }
 
@@ -1982,7 +2004,7 @@ createApp({
     // 准确率：预估订单 / 实际订单 × 100%，未填预估则为0%
     function getForecastAccuracy(d) {
       const eff = d.forecast || 0;
-      const actual = d.actualOrders !== undefined ? d.actualOrders : excelDailyTotals.value[d.date];
+      const actual = d.actualOrders ?? excelDailyTotals.value[d.date] ?? savedActualOrders.value[d.date] ?? null;
       if (!actual || actual === 0) return null;
       if (!eff) return 0;
       return (eff / actual) * 100;
@@ -1991,7 +2013,7 @@ createApp({
     function getOverallAccuracy() {
       let totalForecast = 0, totalActual = 0;
       dailyForecasts.value.forEach(d => {
-        const actual = d.actualOrders !== undefined ? d.actualOrders : excelDailyTotals.value[d.date];
+        const actual = d.actualOrders ?? excelDailyTotals.value[d.date] ?? savedActualOrders.value[d.date] ?? null;
         if (actual && actual > 0) {
           totalForecast += d.forecast || 0;
           totalActual += actual;
@@ -2072,12 +2094,20 @@ createApp({
       while (cur <= end) {
         const dateStr = formatDateLocal(cur);
         const lwActual = getLastWeekActual(dateStr);
+        // 实际订单：当前Excel优先，缺失时从localStorage历史数据补齐
+        const actualFromExcel = excelDailyTotals.value[dateStr];
+        const actualFromStorage = savedActualOrders.value[dateStr];
+        const mergedActual = actualFromExcel ?? actualFromStorage ?? null;
+        // 仓T：当前数据优先，缺失时从localStorage历史数据补齐
+        const wtFromCurrent = warehouseTData[dateStr];
+        const wtFromStorage = savedWarehouseT.value[dateStr];
+        if (wtFromCurrent == null && wtFromStorage != null) warehouseTData[dateStr] = wtFromStorage;
         forecasts.push({
           date: dateStr,
           dayOfWeek: getDayOfWeek(dateStr),
           lastWeekActual: lwActual,
           systemForecast: modelForecastHistory[dateStr] ?? modelForecastData[dateStr] ?? lwActual,
-          actualOrders: excelDailyTotals.value[dateStr] ?? null,
+          actualOrders: mergedActual,
           forecast: existing[dateStr] !== undefined ? existing[dateStr] : 0,
         });
         cur.setDate(cur.getDate() + 1);
@@ -2089,7 +2119,7 @@ createApp({
       const d = new Date(dateStr + 'T00:00:00');
       d.setDate(d.getDate() - 7);
       const lwStr = formatDateLocal(d);
-      return excelDailyTotals.value[lwStr] ?? null;
+      return excelDailyTotals.value[lwStr] ?? savedActualOrders.value[lwStr] ?? null;
     }
 
     function updateLastWeekActuals() {
@@ -3540,6 +3570,9 @@ createApp({
         excelDailyTotals.value = {};
         if (!excelFileName.value) excelRows.value = [];
       }
+      // 将当前Excel实际订单合并到localStorage持久化存储（增量累积，不覆盖历史）
+      Object.assign(savedActualOrders.value, excelDailyTotals.value);
+      try { localStorage.setItem(storagePrefix.value + 'orderForecast_actuals', JSON.stringify(savedActualOrders.value)); } catch(e) {}
       hourlyDistribution.value = getDefaultDistribution(timeSlots.value);
       staffList.value.forEach(s => {
         const newShifts = {};
@@ -3768,6 +3801,7 @@ createApp({
       weatherData, weatherLoading, weatherError, selectedDate, selectedWeatherDate,
       dailyWeather, hourlyWeather,
       forecastStartDate, forecastEndDate, dailyForecasts, warehouseTData,
+      savedActualOrders, savedWarehouseT,
       excelFileName, excelRows, excelColumns, timeColumnName, excelError,
       hourlyDistribution,
       efficiencyPerHour, staffList,
