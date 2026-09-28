@@ -1398,6 +1398,13 @@ createApp({
       },
     };
 
+    // ==================== 系统趋势预估（order_forecast_model.py 输出） ====================
+    // 非节假日的系统预估来源：近3周同星期基准 × 周趋势衰减 × 天气系数（降雨/温度）。
+    // 节假日（国庆/中秋等）不走这里，而由 holidayConfig 的"周末基准×假日倍率"覆盖。
+    // 该对象由钉钉推送脚本 update_model_forecast() 每日重算并整体替换。
+    const modelForecastHistory = {};
+    const modelForecastData = {'2026-09-28':291,'2026-09-29':310,'2026-09-30':310,'2026-10-01':456,'2026-10-02':345,'2026-10-03':399,'2026-10-04':440,'2026-10-05':331,'2026-10-06':372,'2026-10-07':328,'2026-10-08':324,'2026-10-09':279,'2026-10-10':301,'2026-10-11':337,'2026-10-12':289};
+
     // Open-Meteo 天气预报 (西安 34.26,108.94) 更新于 2026-09-17
     const staticWeatherData = {
       '西安': [
@@ -1806,7 +1813,7 @@ createApp({
       '当日天气': '当天的天气预报数据，来源：Open-Meteo API。包含天气状况、最高/最低温度、降水概率。',
       '上周同期实际': '7天前的实际订单数，来源：导入的拣货单Excel汇总。作为环比/同比的基准参考值。',
       '实际订单': '当天的实际订单数，来源：FBI DataMate。通常在次日更新，历史日期可查看，未来日期显示"—"。',
-      '系统预估': '系统自动生成的订单预估值。普通日期=上周同期实际；节假日=正常周末基准×假日倍率（基于中秋/端午实际数据）。时段分布在节假日自动切换为周末模式。',
+      '系统预估': '系统自动生成的订单预估值。普通日期采用趋势模型：近3周同星期基准 × 周趋势衰减 × 天气系数（降雨/温度），不再直接取上周同期；节假日=正常周末基准 × 假日倍率（基于中秋/端午实际数据）。时段分布在节假日自动切换为周末模式。',
       '预估订单': '最终采用的预估值。优先级：用户手动输入 > 系统预估 > 上周同期实际。未填写时自动回退到系统预估。',
       '环比': '当日 vs 前一天实际订单的变化百分比。过去日期使用实际订单，当日及未来使用预估订单。公式：(当日订单 - 昨日实际) / 昨日实际 × 100%。无前日数据时显示"—"。',
       '同比': '与上周同期对比的变化百分比。过去日期：(实际订单 - 上周同期实际) / 上周同期实际 × 100%；当日及未来日期：(预估订单 - 上周同期实际) / 上周同期实际 × 100%。当分子=分母时显示"+0.0%"。',
@@ -1991,6 +1998,8 @@ createApp({
         const dateStr = formatDateLocal(cur);
         const lwActual = getLastWeekActual(dateStr);
         const holiday = getHolidayInfo(dateStr);
+        const modelVal = (typeof modelForecastData !== 'undefined' && modelForecastData[dateStr] !== undefined)
+          ? modelForecastData[dateStr] : null;
         let systemForecast = lwActual;
         if (holiday) {
           // 节假日：用周末基准 × 假日倍率 替代"上周同期"
@@ -1998,14 +2007,18 @@ createApp({
           if (baseline > 0) {
             systemForecast = Math.round(baseline * holiday.multiplier);
           }
+        } else if (modelVal !== null) {
+          // 普通日期：采用趋势模型预估（近3周同星期基准×周衰减×天气），不再直接取上周同期
+          systemForecast = modelVal;
         }
+        const useAsDefault = !!holiday || (modelVal !== null);
         forecasts.push({
           date: dateStr,
           dayOfWeek: getDayOfWeek(dateStr),
           lastWeekActual: lwActual,
           systemForecast: systemForecast,
           actualOrders: excelDailyTotals.value[dateStr] ?? null,
-          forecast: existing[dateStr] !== undefined ? existing[dateStr] : (holiday ? systemForecast : 0),
+          forecast: existing[dateStr] !== undefined ? existing[dateStr] : (useAsDefault ? systemForecast : 0),
           holiday: holiday ? holiday.name : null,
         });
         cur.setDate(cur.getDate() + 1);
