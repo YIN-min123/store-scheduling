@@ -1193,23 +1193,32 @@ createApp({
     // 成山农场门店级拣货单分布数据（2026.8.31-9.6，按门店拆分）
     let storeDistData = {
       '龙湖天街店': {weekday:[
-        {start:'07:00',ratio:0.0},{start:'07:30',ratio:0.04385},{start:'08:00',ratio:0.025626},{start:'08:30',ratio:0.027904},
-        {start:'09:00',ratio:0.041002},{start:'09:30',ratio:0.037585},{start:'10:00',ratio:0.040433},{start:'10:30',ratio:0.037585},
-        {start:'11:00',ratio:0.046128},{start:'11:30',ratio:0.041572},{start:'12:00',ratio:0.03246},{start:'12:30',ratio:0.036446},
-        {start:'13:00',ratio:0.03303},{start:'13:30',ratio:0.030752},{start:'14:00',ratio:0.026765},{start:'14:30',ratio:0.025057},
-        {start:'15:00',ratio:0.03246},{start:'15:30',ratio:0.045558},{start:'16:00',ratio:0.04385},{start:'16:30',ratio:0.04328},
-        {start:'17:00',ratio:0.055239},{start:'17:30',ratio:0.047836},{start:'18:00',ratio:0.053531},{start:'18:30',ratio:0.052392},
-        {start:'19:00',ratio:0.055239},{start:'19:30',ratio:0.040433},{start:'20:00',ratio:0.003986},{start:'20:30',ratio:0.0},
-        {start:'21:00',ratio:0.0},{start:'21:30',ratio:0.0},
+        {start:'07:00',ratio:0.004116},{start:'07:30',ratio:0.007247},{start:'08:00',ratio:0.014284},{start:'08:30',ratio:0.022446},
+        {start:'09:00',ratio:0.030678},{start:'09:30',ratio:0.037679},{start:'10:00',ratio:0.042605},{start:'10:30',ratio:0.046791},
+        {start:'11:00',ratio:0.046756},{start:'11:30',ratio:0.043942},{start:'12:00',ratio:0.03775},{start:'12:30',ratio:0.036589},
+        {start:'13:00',ratio:0.032578},{start:'13:30',ratio:0.032226},{start:'14:00',ratio:0.029658},{start:'14:30',ratio:0.031839},
+        {start:'15:00',ratio:0.034056},{start:'15:30',ratio:0.038735},{start:'16:00',ratio:0.041479},{start:'16:30',ratio:0.04943},
+        {start:'17:00',ratio:0.048726},{start:'17:30',ratio:0.050591},{start:'18:00',ratio:0.049043},{start:'18:30',ratio:0.053863},
+        {start:'19:00',ratio:0.052491},{start:'19:30',ratio:0.041373},{start:'20:00',ratio:0.013791},{start:'20:30',ratio:0.009675},
+        {start:'21:00',ratio:0.010132},{start:'21:30',ratio:0.009429},
       ],weekend:[
-        {start:'07:00',ratio:0.0},{start:'07:30',ratio:0.049398},{start:'08:00',ratio:0.028916},{start:'08:30',ratio:0.031325},
-        {start:'09:00',ratio:0.042169},{start:'09:30',ratio:0.045783},{start:'10:00',ratio:0.073494},{start:'10:30',ratio:0.061446},
-        {start:'11:00',ratio:0.049398},{start:'11:30',ratio:0.045783},{start:'12:00',ratio:0.042169},{start:'12:30',ratio:0.03494},
-        {start:'13:00',ratio:0.024096},{start:'13:30',ratio:0.027711},{start:'14:00',ratio:0.019277},{start:'14:30',ratio:0.033735},
-        {start:'15:00',ratio:0.028916},{start:'15:30',ratio:0.03253},{start:'16:00',ratio:0.046988},{start:'16:30',ratio:0.03494},
-        {start:'17:00',ratio:0.049398},{start:'17:30',ratio:0.042169},{start:'18:00',ratio:0.042169},{start:'18:30',ratio:0.038554},
-        {start:'19:00',ratio:0.043373},{start:'19:30',ratio:0.028916},{start:'20:00',ratio:0.00241},{start:'20:30',ratio:0.0},
-        {start:'21:00',ratio:0.0},{start:'21:30',ratio:0.0},
+        {start:'07:00',ratio:0.003572},{start:'07:30',ratio:0.008615},{start:'08:00',ratio:0.014289},{start:'08:30',ratio:0.024655},
+        {start:'09:00',ratio:0.035302},{start:'09:30',ratio:0.047209},{start:'10:00',ratio:0.052112},{start:'10:30',ratio:0.057995},
+        {start:'11:00',ratio:0.052252},{start:'11:30',ratio:0.044967},{start:'12:00',ratio:0.040975},{start:'12:30',ratio:0.037613},
+        {start:'13:00',ratio:0.034321},{start:'13:30',ratio:0.035231},{start:'14:00',ratio:0.031939},{start:'14:30',ratio:0.036492},
+        {start:'15:00',ratio:0.03278},{start:'15:30',ratio:0.038383},{start:'16:00',ratio:0.043006},{start:'16:30',ratio:0.043076},
+        {start:'17:00',ratio:0.045458},{start:'17:30',ratio:0.045388},{start:'18:00',ratio:0.043356},{start:'18:30',ratio:0.041535},
+        {start:'19:00',ratio:0.039854},{start:'19:30',ratio:0.034041},{start:'20:00',ratio:0.011487},{start:'20:30',ratio:0.008965},
+        {start:'21:00',ratio:0.007915},{start:'21:30',ratio:0.007214},
+      ],holiday:[
+        {start:'07:00',ratio:0.004193},{start:'07:30',ratio:0.009434},{start:'08:00',ratio:0.015723},{start:'08:30',ratio:0.037736},
+        {start:'09:00',ratio:0.049266},{start:'09:30',ratio:0.063941},{start:'10:00',ratio:0.054507},{start:'10:30',ratio:0.060797},
+        {start:'11:00',ratio:0.048218},{start:'11:30',ratio:0.050314},{start:'12:00',ratio:0.033543},{start:'12:30',ratio:0.038784},
+        {start:'13:00',ratio:0.041929},{start:'13:30',ratio:0.035639},{start:'14:00',ratio:0.028302},{start:'14:30',ratio:0.033543},
+        {start:'15:00',ratio:0.024109},{start:'15:30',ratio:0.034591},{start:'16:00',ratio:0.038784},{start:'16:30',ratio:0.041929},
+        {start:'17:00',ratio:0.04717},{start:'17:30',ratio:0.038784},{start:'18:00',ratio:0.044025},{start:'18:30',ratio:0.030398},
+        {start:'19:00',ratio:0.033543},{start:'19:30',ratio:0.034591},{start:'20:00',ratio:0.006289},{start:'20:30',ratio:0.005241},
+        {start:'21:00',ratio:0.003145},{start:'21:30',ratio:0.01153},
       ]},
       '凯德广场店': {weekday:[
         {start:'07:00',ratio:0.009167},{start:'07:30',ratio:0.005348},{start:'08:00',ratio:0.020626},{start:'08:30',ratio:0.019099},
@@ -1332,6 +1341,15 @@ createApp({
         {start:'17:00',ratio:0.044476},{start:'17:30',ratio:0.042181},{start:'18:00',ratio:0.04132},{start:'18:30',ratio:0.032138},
         {start:'19:00',ratio:0.037303},{start:'19:30',ratio:0.028694},{start:'20:00',ratio:0.012626},{start:'20:30',ratio:0.007461},
         {start:'21:00',ratio:0.008034},{start:'21:30',ratio:0.009182},
+      ],holiday:[
+        {start:'07:00',ratio:0.004193},{start:'07:30',ratio:0.009434},{start:'08:00',ratio:0.015723},{start:'08:30',ratio:0.037736},
+        {start:'09:00',ratio:0.049266},{start:'09:30',ratio:0.063941},{start:'10:00',ratio:0.054507},{start:'10:30',ratio:0.060797},
+        {start:'11:00',ratio:0.048218},{start:'11:30',ratio:0.050314},{start:'12:00',ratio:0.033543},{start:'12:30',ratio:0.038784},
+        {start:'13:00',ratio:0.041929},{start:'13:30',ratio:0.035639},{start:'14:00',ratio:0.028302},{start:'14:30',ratio:0.033543},
+        {start:'15:00',ratio:0.024109},{start:'15:30',ratio:0.034591},{start:'16:00',ratio:0.038784},{start:'16:30',ratio:0.041929},
+        {start:'17:00',ratio:0.04717},{start:'17:30',ratio:0.038784},{start:'18:00',ratio:0.044025},{start:'18:30',ratio:0.030398},
+        {start:'19:00',ratio:0.033543},{start:'19:30',ratio:0.034591},{start:'20:00',ratio:0.006289},{start:'20:30',ratio:0.005241},
+        {start:'21:00',ratio:0.003145},{start:'21:30',ratio:0.01153},
       ]},
     };
     // FBI看板1796001 品牌级每日订单 (2026.8.8-9.13)
@@ -1354,28 +1372,29 @@ createApp({
     // distribution: 该假期使用哪种时段分布（'weekend' 或 'weekday'）
     const holidayConfig = {
       // 2026 中秋节: 9/25(周五) - 9/27(周日)
-      // 实际数据: 374/281/293 vs 正常周末均值~306 → 倍率 1.22/0.92/0.96
+      // 实际: 374/281/293 vs 正常周末均值~372 → 倍率 1.00/0.76/0.79
+      // 特征: 首日聚餐≈周末水平（囤货已在节前周六完成），次日出行低谷，末日小幅回升
       midautumn_2026: {
         name: '中秋节',
         start: '2026-09-25', end: '2026-09-27',
-        distribution: 'weekend',
-        multipliers: [1.22, 0.92, 0.96],
+        distribution: 'holiday',
+        multipliers: [1.00, 0.76, 0.79],
       },
       // 2026 端午节: 6/19(周五) - 6/21(周日)
-      // 实际数据: 281/250/249 vs 正常周末均值~305 → 倍率 0.92/0.82/0.82（端午无拉动）
+      // 实际: 281/250/249 vs 正常周末均值~305 → 倍率 0.92/0.82/0.82（端午无拉动）
       dragonboat_2026: {
         name: '端午节',
         start: '2026-06-19', end: '2026-06-21',
-        distribution: 'weekend',
+        distribution: 'holiday',
         multipliers: [0.92, 0.82, 0.82],
       },
       // 2026 国庆节: 10/1(周四) - 10/7(周三)
-      // 参考中秋模式 + 长假出行特征：首日聚餐备货高峰，中间出行低谷，尾段回归
+      // 参考中秋模式：首日≈周末，中间出行低谷，尾段回升
       nationalday_2026: {
         name: '国庆节',
         start: '2026-10-01', end: '2026-10-07',
-        distribution: 'weekend',
-        multipliers: [1.22, 0.92, 0.80, 0.78, 0.82, 0.90, 1.05],
+        distribution: 'holiday',
+        multipliers: [1.00, 0.76, 0.70, 0.68, 0.72, 0.82, 0.95],
       },
     };
 
@@ -1610,18 +1629,22 @@ createApp({
       if (!slots.length) return [];
       const storeName = selectedStore.value?.name;
       const brandName = brands.value[selectedBrandIdx.value]?.name;
-      // 按选中日期挑选工作日/周末分布；兼容旧版扁平数组（Excel导入产出）
+      // 按选中日期挑选工作日/周末/节假日分布；兼容旧版扁平数组（Excel导入产出）
       const distArr = (obj) => {
         if (Array.isArray(obj)) return obj;
         if (obj && typeof obj === 'object') {
           const d = selectedDate.value;
-          let isWeekend = false;
           if (d) {
             const holiday = getHolidayInfo(d);
-            if (holiday) { isWeekend = (holiday.distribution === 'weekend'); }
-            else { const dt = new Date(d + 'T00:00:00'); const day = dt.getDay(); isWeekend = (day === 0 || day === 6); }
+            if (holiday) {
+              // 节假日：优先用 holiday 分布，无则回退到 weekend
+              if (holiday.distribution === 'holiday' && obj.holiday) return obj.holiday;
+              return obj.weekend;
+            }
+            const dt = new Date(d + 'T00:00:00'); const day = dt.getDay();
+            return (day === 0 || day === 6) ? obj.weekend : obj.weekday;
           }
-          return isWeekend ? obj.weekend : obj.weekday;
+          return obj.weekday;
         }
         return null;
       };
@@ -2011,18 +2034,28 @@ createApp({
     }
 
     function getWeekendBaseline() {
-      // 从实际数据中取最近的正常周末均值（排除节假日期间的周末）
+      // 取最近一个正常周末均值（排除节假日、调休上班日、节前3天内的周末）
       const data = excelDailyTotals.value;
       const dates = Object.keys(data).sort().reverse();
+      const makeupWorkdays = ['2026-09-20','2026-10-10','2026-04-26','2026-02-14','2026-02-28'];
+      // 收集所有节假日起始日，用于排除节前囤货日
+      const holidayStarts = Object.values(holidayConfig).map(h => new Date(h.start + 'T00:00:00').getTime());
       let weekendSum = 0, weekendCount = 0;
       for (const ds of dates) {
         const dt = new Date(ds + 'T00:00:00');
         const dow = dt.getDay();
-        if (dow !== 0 && dow !== 6) continue; // 只看周六日
-        if (getHolidayInfo(ds)) continue; // 排除节假日周末
+        if (dow !== 0 && dow !== 6) continue;
+        if (getHolidayInfo(ds)) continue;
+        if (makeupWorkdays.includes(ds)) continue;
+        // 排除节前7天内的周末（节前囤货效应）
+        const isPreHoliday = holidayStarts.some(hs => {
+          const diff = hs - dt.getTime();
+          return diff > 0 && diff <= 7 * 86400000;
+        });
+        if (isPreHoliday) continue;
         weekendSum += data[ds];
         weekendCount++;
-        if (weekendCount >= 4) break; // 取最近4个正常周末日
+        if (weekendCount >= 2) break;
       }
       return weekendCount > 0 ? Math.round(weekendSum / weekendCount) : 0;
     }
