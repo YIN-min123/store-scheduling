@@ -284,7 +284,6 @@
       margin-top: 2px;
     }
   </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="app" v-cloak>
@@ -319,20 +318,6 @@
         <span>{{ selectedStore.businessStart }}-{{ selectedStore.businessEnd }}</span>
       </div>
       <div class="ml-auto flex items-center gap-2">
-        <input type="file" ref="excelFileInput" accept=".xlsx,.xls,.csv"
-          @change="handleExcelUpload" style="display:none;">
-        <button @click="$refs.excelFileInput.click()"
-          class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-blue-50"
-          style="border-color: var(--color-line); color: var(--color-blue, #3B82F6);"
-          title="导入拣货单Excel，自动计算工作日/周末时段订单占比">
-          导入拣货单
-        </button>
-        <span v-if="excelFileName && !excelError" class="text-xs" style="color: var(--color-green, #22C55E);" :title="excelFileName">
-          {{ excelFileName.length > 20 ? excelFileName.slice(0, 17) + '...' : excelFileName }}
-        </span>
-        <span v-if="excelError" class="text-xs" style="color: var(--color-red, #EF4444);" :title="excelError">
-          {{ excelError.length > 30 ? excelError.slice(0, 27) + '...' : excelError }}
-        </span>
         <button @click="showSettings = !showSettings"
           class="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors hover:bg-orange-50"
           style="border-color: var(--color-line);">
@@ -400,13 +385,8 @@
       <!-- 近7天预报卡片（当日+未来6天，不联动日期选择） -->
       <div v-if="dailyWeather.length" class="flex gap-3 overflow-x-auto pb-2 scroll-x justify-center">
         <div v-for="day in dailyWeather" :key="day.date"
-          @click="selectedWeatherDate = day.date"
-          class="weather-card flex-shrink-0 w-28 sm:w-32 p-3 rounded-xl border-2 cursor-pointer transition-all"
-          :style="{
-            borderColor: selectedWeatherDate === day.date ? 'var(--theme-weather, #F59E0B)' : 'var(--color-line)',
-            background: selectedWeatherDate === day.date ? 'rgba(245,158,11,0.06)' : 'var(--color-surface)',
-            boxShadow: selectedWeatherDate === day.date ? '0 2px 8px rgba(245,158,11,0.15)' : 'none'
-          }">
+          class="weather-card flex-shrink-0 w-28 sm:w-32 p-3 rounded-xl border-2"
+          style="border-color: var(--color-line); background: var(--color-surface);">
           <div class="text-center">
             <div class="text-xs font-semibold font-mono">{{ day.date.slice(5) }}</div>
             <div class="text-xs" style="color: var(--color-muted);">{{ day.dayOfWeek }}</div>
@@ -420,10 +400,7 @@
               <span class="font-semibold font-mono" style="color: var(--theme-weather);">{{ Math.round(day.tempMax) }}°</span>
               <span class="font-mono" style="color: var(--color-muted);">{{ Math.round(day.tempMin) }}°</span>
             </div>
-            <div class="text-xs font-mono mt-1" style="color: var(--color-blue);">
-              <span v-if="day.precipMM > 0">{{ day.precipMM }}mm</span>
-              <span v-else-if="day.precipProb > 0">{{ day.precipProb }}%</span>
-            </div>
+            <div class="text-xs font-mono mt-1" style="color: var(--color-blue);">{{ day.precipProb }}%</div>
           </div>
         </div>
       </div>
@@ -432,7 +409,7 @@
       <div v-if="hourlyWeather.length" class="mt-5">
         <div class="flex items-center justify-center gap-2 mb-3">
           <h3 class="text-sm font-semibold">当日时段天气</h3>
-          <span class="text-xs font-mono" style="color: var(--color-muted);">{{ selectedWeatherDate || selectedDate }}</span>
+          <span class="text-xs font-mono" style="color: var(--color-muted);">{{ selectedDate }}</span>
         </div>
         <div style="position: relative; height: 280px;">
           <canvas id="weatherChart"></canvas>
@@ -1167,18 +1144,6 @@
 <script>
 const { createApp, ref, reactive, computed, watch, onMounted, nextTick } = Vue;
 
-    // ==================== Supabase Multi-User Sync ====================
-    const SUPABASE_URL = 'https://wjmjwyoadfbaullhhgnw.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqbWp3eW9hZGZiYXVsbGhoZ253Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2OTI5MTIsImV4cCI6MjEwNTI2ODkxMn0.Pqe_0T-rgb-Jx8yX3UUL-XyLhxDND8hAlHhDPm0NeJU';
-    let _sb = null;
-    try {
-      if (window.supabase) {
-        _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log('[Supabase] Client initialized');
-      }
-    } catch(e) { console.warn('[Supabase] Init failed:', e); }
-
-
 createApp({
   setup() {
     // ==================== 城市坐标 ====================
@@ -1343,32 +1308,9 @@ createApp({
     // 成山农场门店级每日订单汇总（2026.8.8-9.16）
     // FBI看板1796001 门店级每日订单 (2026.8.8-9.16)
     let storeDailyData = {
-      '龙湖天街店': {'2026-08-08':377,'2026-08-09':380,'2026-08-10':354,'2026-08-11':251,'2026-08-12':267,'2026-08-13':315,'2026-08-14':294,'2026-08-15':389,'2026-08-16':352,'2026-08-17':283,'2026-08-18':347,'2026-08-19':281,'2026-08-20':317,'2026-08-21':343,'2026-08-22':465,'2026-08-23':417,'2026-08-24':348,'2026-08-25':370,'2026-08-26':378,'2026-08-27':406,'2026-08-28':398,'2026-08-29':393,'2026-08-30':414,'2026-08-31':347,'2026-09-01':378,'2026-09-02':333,'2026-09-03':335,'2026-09-04':303,'2026-09-05':392,'2026-09-06':412,'2026-09-07':324,'2026-09-08':365,'2026-09-09':414,'2026-09-10':365,'2026-09-11':329,'2026-09-12':376,'2026-09-13':368,'2026-09-14':311,'2026-09-15':306,'2026-09-16': 306, '2026-09-17': 253, '2026-09-18': 265, '2026-09-19': 370, '2026-09-20': 356, '2026-09-21': 233, '2026-09-22': 248, '2026-09-23': 255},
+      '龙湖天街店': {'2026-08-08':377,'2026-08-09':380,'2026-08-10':354,'2026-08-11':251,'2026-08-12':267,'2026-08-13':315,'2026-08-14':294,'2026-08-15':389,'2026-08-16':352,'2026-08-17':283,'2026-08-18':347,'2026-08-19':281,'2026-08-20':317,'2026-08-21':343,'2026-08-22':465,'2026-08-23':417,'2026-08-24':348,'2026-08-25':370,'2026-08-26':378,'2026-08-27':406,'2026-08-28':398,'2026-08-29':393,'2026-08-30':414,'2026-08-31':347,'2026-09-01':378,'2026-09-02':333,'2026-09-03':335,'2026-09-04':303,'2026-09-05':392,'2026-09-06':412,'2026-09-07':324,'2026-09-08':365,'2026-09-09':414,'2026-09-10':365,'2026-09-11':329,'2026-09-12':376,'2026-09-13':368,'2026-09-14':311,'2026-09-15':306,'2026-09-16':306, '2026-09-27': 293},
     };
-    // 模型预估历史（推送脚本每日锁定当日预估值，过去日期不再修改）
-    const modelForecastHistory = {
-  '2026-09-18': 315,
-  '2026-09-20': 362,
-  '2026-09-21': 357,
-  '2026-09-22': 380
-};
-    // 模型预估数据（order_forecast_model.py v3.0, 回测准确率92.6%, MAPE 7.4%）
-    // 基于历史订单+天气系数+星期基准+调休/节假日+趋势衰减
-    const modelForecastData = {
-  '2026-09-16': 354,
-  '2026-09-17': 362,
-  '2026-09-19': 391,
-  '2026-09-22': 380,
-  '2026-09-23': 391,
-  '2026-09-24': 369,
-  '2026-09-25': 388,
-  '2026-09-26': 493,
-  '2026-09-27': 501,
-  '2026-09-28': 371,
-  '2026-09-29': 388,
-  '2026-09-30': 369
-};
-        // 成山农场品牌级汇总分布（全门店合计）
+    // 成山农场品牌级汇总分布（全门店合计）
     let brandDistData = {
       '成山农场': {weekday:[
         {start:'07:00',ratio:0.006032},{start:'07:30',ratio:0.00935},{start:'08:00',ratio:0.019152},{start:'08:30',ratio:0.022621},
@@ -1392,7 +1334,7 @@ createApp({
     };
     // FBI看板1796001 品牌级每日订单 (2026.8.8-9.13)
     let brandDailyData = {
-      '成山农场': {'2026-08-08':1386,'2026-08-09':1424,'2026-08-10':1261,'2026-08-11':1080,'2026-08-12':1186,'2026-08-13':1175,'2026-08-14':1182,'2026-08-15':1522,'2026-08-16':1546,'2026-08-17':1371,'2026-08-18':1469,'2026-08-19':1319,'2026-08-20':1312,'2026-08-21':1506,'2026-08-22':1867,'2026-08-23':1851,'2026-08-24':1525,'2026-08-25':1582,'2026-08-26':1517,'2026-08-27':1582,'2026-08-28':1418,'2026-08-29':1574,'2026-08-30':1762,'2026-08-31':1260,'2026-09-01':1395,'2026-09-02':1367,'2026-09-03':1361,'2026-09-04':1278,'2026-09-05':1692,'2026-09-06':1800,'2026-09-07':658,'2026-09-08':767,'2026-09-09':956,'2026-09-10':774,'2026-09-11':649,'2026-09-12':843,'2026-09-13':911,'2026-09-14':1368,'2026-09-15':1405,'2026-09-16':1405},
+      '成山农场': {'2026-08-08':1386,'2026-08-09':1424,'2026-08-10':1261,'2026-08-11':1080,'2026-08-12':1186,'2026-08-13':1175,'2026-08-14':1182,'2026-08-15':1522,'2026-08-16':1546,'2026-08-17':1371,'2026-08-18':1469,'2026-08-19':1319,'2026-08-20':1312,'2026-08-21':1506,'2026-08-22':1867,'2026-08-23':1851,'2026-08-24':1525,'2026-08-25':1582,'2026-08-26':1517,'2026-08-27':1582,'2026-08-28':1418,'2026-08-29':1574,'2026-08-30':1762,'2026-08-31':1260,'2026-09-01':1395,'2026-09-02':1367,'2026-09-03':1361,'2026-09-04':1278,'2026-09-05':1692,'2026-09-06':1800,'2026-09-07':658,'2026-09-08':767,'2026-09-09':956,'2026-09-10':774,'2026-09-11':649,'2026-09-12':843,'2026-09-13':911,'2026-09-14':1368,'2026-09-15':1405,'2026-09-16':1321},
     };
 
     // FBI DataMate 各门店 单均仓T (2026.9.7-9.16) 单位：分钟
@@ -1401,8 +1343,7 @@ createApp({
         '2026-09-07': 11.18, '2026-09-08': 37.18, '2026-09-09': 23.95,
         '2026-09-10': 20.18, '2026-09-11': 14.45, '2026-09-12': 19.07,
         '2026-09-13': 36.65, '2026-09-14': 9.99, '2026-09-15': 12.39,
-        '2026-09-16': 9.31
-      , '2026-09-17': 12.31, '2026-09-19': 28.86, '2026-09-18': 9.86, '2026-09-20': 8.6, '2026-09-21': 4.92, '2026-09-22': 8.25, '2026-09-23': 4.85},
+        '2026-09-16': 9.31, '2026-09-27': 8.23},
     };
 
     // Open-Meteo 天气预报 (西安 34.26,108.94) 更新于 2026-09-17
@@ -1417,24 +1358,6 @@ createApp({
         {date:'2026-09-23',desc:'微毛雨',temp:'18~24°C'},
       ],
     };
-
-    // 已保存的预估订单数据（由推送脚本自动嵌入，用户通过"保存预估"按钮下载JSON文件维护）
-    let savedForecastsData = {
-        "龙湖天街店": {
-          "2026-09-17": 383,
-          "2026-09-18": 345,
-          "2026-09-19": 376,
-          "2026-09-20": 412,
-          "2026-09-21": 347,
-          "2026-09-22": 352,
-          "2026-09-23": 418,
-          "2026-09-24": 399
-        }
-      };
-
-    // localStorage 持久化的实际订单 & 仓T（跨Excel上传保留历史数据）
-    const savedActualOrders = ref({});
-    const savedWarehouseT = ref({});
 
     const brands = ref([
       {
@@ -1510,7 +1433,6 @@ createApp({
     const weatherLoading = ref(false);
     const weatherError = ref('');
     const selectedDate = ref('');
-    const selectedWeatherDate = ref('');
 
     const wmoMap = {
       0: { label: '晴', color: '#F59E0B', bg: '#FEF3C7' },
@@ -1519,21 +1441,21 @@ createApp({
       3: { label: '阴', color: '#64748B', bg: '#F1F5F9' },
       45: { label: '雾', color: '#94A3B8', bg: '#F1F5F9' },
       48: { label: '雾凇', color: '#94A3B8', bg: '#F1F5F9' },
-      51: { label: '小雨', color: '#3B82F6', bg: '#DBEAFE' },
-      53: { label: '小雨', color: '#3B82F6', bg: '#DBEAFE' },
-      55: { label: '小雨', color: '#2563EB', bg: '#DBEAFE' },
-      56: { label: '冻雨', color: '#3B82F6', bg: '#DBEAFE' },
-      57: { label: '冻雨', color: '#2563EB', bg: '#DBEAFE' },
-      61: { label: '小雨', color: '#3B82F6', bg: '#DBEAFE' },
-      63: { label: '中雨', color: '#2563EB', bg: '#DBEAFE' },
+      51: { label: '微毛雨', color: '#3B82F6', bg: '#DBEAFE' },
+      53: { label: '毛雨', color: '#3B82F6', bg: '#DBEAFE' },
+      55: { label: '密毛雨', color: '#2563EB', bg: '#DBEAFE' },
+      56: { label: '冻毛雨', color: '#3B82F6', bg: '#DBEAFE' },
+      57: { label: '密冻雨', color: '#2563EB', bg: '#DBEAFE' },
+      61: { label: '微雨', color: '#3B82F6', bg: '#DBEAFE' },
+      63: { label: '雨', color: '#2563EB', bg: '#DBEAFE' },
       65: { label: '大雨', color: '#1D4ED8', bg: '#DBEAFE' },
       66: { label: '冻雨', color: '#3B82F6', bg: '#DBEAFE' },
-      67: { label: '冻雨', color: '#1D4ED8', bg: '#DBEAFE' },
-      71: { label: '小雪', color: '#06B6D4', bg: '#CFFAFE' },
-      73: { label: '中雪', color: '#06B6D4', bg: '#CFFAFE' },
+      67: { label: '密冻雨', color: '#1D4ED8', bg: '#DBEAFE' },
+      71: { label: '微雪', color: '#06B6D4', bg: '#CFFAFE' },
+      73: { label: '雪', color: '#06B6D4', bg: '#CFFAFE' },
       75: { label: '大雪', color: '#0891B2', bg: '#CFFAFE' },
       77: { label: '雪粒', color: '#06B6D4', bg: '#CFFAFE' },
-      80: { label: '小阵雨', color: '#3B82F6', bg: '#DBEAFE' },
+      80: { label: '微阵雨', color: '#3B82F6', bg: '#DBEAFE' },
       81: { label: '阵雨', color: '#2563EB', bg: '#DBEAFE' },
       82: { label: '强阵雨', color: '#1D4ED8', bg: '#DBEAFE' },
       85: { label: '阵雪', color: '#06B6D4', bg: '#CFFAFE' },
@@ -1565,15 +1487,13 @@ createApp({
           tempMax: d.temperature_2m_max[i],
           tempMin: d.temperature_2m_min[i],
           precipProb: d.precipitation_probability_max ? d.precipitation_probability_max[i] : 0,
-          precipMM: d.precipitation_sum ? d.precipitation_sum[i] : 0,
         }))
         .filter(w => w.date >= today)
         .slice(0, 7);
     });
 
     const hourlyWeather = computed(() => {
-      const dateStr = selectedWeatherDate.value || selectedDate.value;
-      if (!weatherData.value || !dateStr) return [];
+      if (!weatherData.value || !selectedDate.value) return [];
       const h = weatherData.value.hourly;
       const store = selectedStore.value;
       const bs = store ? parseInt(store.businessStart.split(':')[0]) : 0;
@@ -1585,7 +1505,7 @@ createApp({
         precipProb: h.precipitation_probability ? h.precipitation_probability[i] : 0,
         weatherCode: h.weather_code[i],
       })).filter(w => {
-        if (!w.time.startsWith(dateStr)) return false;
+        if (!w.time.startsWith(selectedDate.value)) return false;
         const hr = parseInt(w.hour.split(':')[0]);
         return hr >= bs && hr < be;
       });
@@ -1603,18 +1523,14 @@ createApp({
         // 预报+历史（past_days=22 覆盖表格全部日期+上周同期，forecast_days=7 当日+未来6天=近7天）
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}` +
           `&hourly=temperature_2m,precipitation_probability,weather_code` +
-          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum` +
+          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
           `&timezone=Asia%2FShanghai&past_days=22&forecast_days=7`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('API返回错误');
         weatherData.value = await res.json();
         const dates = weatherData.value.daily.time;
-        // 初始化天气选中日期为今天
-        const todayStr = formatDateLocal(new Date());
-        if (!selectedWeatherDate.value || !dates.includes(selectedWeatherDate.value)) {
-          selectedWeatherDate.value = dates.includes(todayStr) ? todayStr : dates[dates.length - 7] || dates[0];
-        }
         if (dates.length && !dates.includes(selectedDate.value)) {
+          const todayStr = formatDateLocal(new Date());
           selectedDate.value = dates.includes(todayStr) ? todayStr : dates[dates.length - 7] || dates[0];
         }
       } catch (e) {
@@ -1755,7 +1671,7 @@ createApp({
       const d = new Date(dateStr + 'T00:00:00');
       d.setDate(d.getDate() - 1);
       const yStr = formatDateLocal(d);
-      return excelDailyTotals.value[yStr] ?? savedActualOrders.value[yStr] ?? null;
+      return excelDailyTotals.value[yStr] ?? null;
     }
 
     // 环比：过去日期用实际订单，当日及未来用预估订单 vs 昨日实际（负值红色）
@@ -1830,7 +1746,7 @@ createApp({
       '当日天气': '当天的天气预报数据，来源：Open-Meteo API。包含天气状况、最高/最低温度、降水概率。',
       '上周同期实际': '7天前的实际订单数，来源：导入的拣货单Excel汇总。作为环比/同比的基准参考值。',
       '实际订单': '当天的实际订单数，来源：FBI DataMate。通常在次日更新，历史日期可查看，未来日期显示"—"。',
-      '系统预估': '模型预估值，来源：order_forecast_model.py v3.0（回测准确率92.6%）。基于历史星期基准+天气系数+调休/节假日+趋势衰减。未来日期显示模型预估，过去日期显示实际订单。',
+      '系统预估': '系统自动生成的订单预估值，来源：FBI DataMate 算法模型。基于历史数据、天气、星期等因素综合计算。',
       '预估订单': '最终采用的预估值。优先级：用户手动输入 > 系统预估 > 上周同期实际。未填写时自动回退到系统预估。',
       '环比': '当日 vs 前一天实际订单的变化百分比。过去日期使用实际订单，当日及未来使用预估订单。公式：(当日订单 - 昨日实际) / 昨日实际 × 100%。无前日数据时显示"—"。',
       '同比': '与上周同期对比的变化百分比。过去日期：(实际订单 - 上周同期实际) / 上周同期实际 × 100%；当日及未来日期：(预估订单 - 上周同期实际) / 上周同期实际 × 100%。当分子=分母时显示"+0.0%"。',
@@ -1850,25 +1766,12 @@ createApp({
       const now = new Date();
       const timeStr = formatDateLocal(now) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
       
-      const currentStore = selectedStore.value?.name || '';
-      const currentBrand = brands.value[selectedBrandIdx.value]?.name || '';
-      
       const data = {
         saveDate: timeStr,
-        brand: currentBrand,
-        store: currentStore,
+        brand: brands.value[selectedBrandIdx.value]?.name || '',
+        store: selectedStore.value?.name || '',
         forecasts: dailyForecasts.value.map(d => ({ date: d.date, forecast: d.forecast || 0 })),
-        // 同步保存实际订单和仓T到localStorage，供后续补齐
-        actualOrders: {},
-        warehouseT: {},
       };
-      dailyForecasts.value.forEach(d => {
-        if (d.actualOrders != null) data.actualOrders[d.date] = d.actualOrders;
-        if (warehouseTData[d.date] != null) data.warehouseT[d.date] = warehouseTData[d.date];
-      });
-      // 合并到全局持久化存储
-      Object.assign(savedActualOrders.value, data.actualOrders);
-      Object.assign(savedWarehouseT.value, data.warehouseT);
       
       try {
         localStorage.setItem(storagePrefix.value + 'orderForecast_save', JSON.stringify(data));
@@ -1886,19 +1789,8 @@ createApp({
         // 更新快照
         savedForecastsMap = {};
         dailyForecasts.value.forEach(d => { savedForecastsMap[d.date] = d.forecast || 0; });
-
-        alert('预估已保存！已同步到云端，多人协同自动生效。');
-        // Supabase sync
-        if (_sb) {
-          const sbRows = data.forecasts.map(f => ({
-            date: f.date, store_name: currentStore,
-            user_name: currentUser || 'shared',
-            forecast_value: f.forecast || 0
-          }));
-          _sb.from('forecasts').upsert(sbRows, { onConflict: 'date,store_name,user_name' })
-            .then(() => console.log('[Supabase] Forecasts synced:', sbRows.length))
-            .catch(e => console.warn('[Supabase] Forecast sync failed:', e));
-        }
+        
+        alert('预估已保存！');
       } catch(e) { 
         console.error('保存失败:', e);
         alert('保存失败，请重试');
@@ -1916,95 +1808,39 @@ createApp({
 
     function loadSavedForecasts() {
       try {
-        const currentStore = selectedStore.value?.name || '';
-        const currentBrand = brands.value[selectedBrandIdx.value]?.name || '';
-        // 优先从 localStorage 加载（用户刚保存的）
         const raw = localStorage.getItem(storagePrefix.value + 'orderForecast_save');
         if (raw) {
           const data = JSON.parse(raw);
+          const currentStore = selectedStore.value?.name || '';
+          const currentBrand = brands.value[selectedBrandIdx.value]?.name || '';
           // 门店/品牌不匹配时跳过加载，避免跨门店数据污染
           if (data.store !== currentStore || data.brand !== currentBrand) {
             console.log('localStorage数据门店不匹配，跳过加载（已保存:', data.brand + '/' + data.store, '当前:', currentBrand + '/' + currentStore + '）');
-          } else {
-            lastSaveTime.value = data.saveDate || '';
-            if (data.forecasts) {
-              data.forecasts.forEach(f => { savedForecastsMap[f.date] = f.forecast || 0; });
-            }
-            if (data.forecasts && dailyForecasts.value.length) {
-              const savedMap = {};
-              data.forecasts.forEach(f => { savedMap[f.date] = f.forecast; });
-              dailyForecasts.value.forEach(d => {
-                if (savedMap[d.date] !== undefined) d.forecast = savedMap[d.date];
-              });
-            }
-            // 加载历史实际订单和仓T（用于后续生成时补齐缺失数据）
-            if (data.actualOrders) Object.assign(savedActualOrders.value, data.actualOrders);
-            if (data.warehouseT) Object.assign(savedWarehouseT.value, data.warehouseT);
-            return; // localStorage 有数据就直接返回
+            return;
           }
-        }
-        // localStorage 没有或门店不匹配时，从嵌入的 savedForecastsData 加载
-        if (currentStore && savedForecastsData[currentStore]) {
-          const embedded = savedForecastsData[currentStore];
-          dailyForecasts.value.forEach(d => {
-            if (embedded[d.date] !== undefined) {
-              d.forecast = embedded[d.date];
-              savedForecastsMap[d.date] = embedded[d.date];
-            }
-          });
-          console.log('从嵌入数据加载了', Object.keys(embedded).length, '条预估');
+          lastSaveTime.value = data.saveDate || '';
+          // 保存所有已保存的预估值到全局 map
+          if (data.forecasts) {
+            data.forecasts.forEach(f => { savedForecastsMap[f.date] = f.forecast || 0; });
+          }
+          // 恢复到当前数组
+          if (data.forecasts && dailyForecasts.value.length) {
+            const savedMap = {};
+            data.forecasts.forEach(f => { savedMap[f.date] = f.forecast; });
+            dailyForecasts.value.forEach(d => {
+              if (savedMap[d.date] !== undefined) d.forecast = savedMap[d.date];
+            });
+          }
         }
         const logRaw = localStorage.getItem(storagePrefix.value + 'orderForecast_log');
         if (logRaw) changeLog.value = JSON.parse(logRaw);
-        // 加载独立存储的实际订单历史（onStoreChange时增量保存）
-        const actualsRaw = localStorage.getItem(storagePrefix.value + 'orderForecast_actuals');
-        if (actualsRaw) {
-          try { Object.assign(savedActualOrders.value, JSON.parse(actualsRaw)); } catch(e) {}
-        }
       } catch(e) { console.error('加载保存数据失败:', e); }
-    }
-
-    // 系统预估持久化：保存到 localStorage + Supabase
-    function saveSystemForecasts() {
-      try {
-        const data = {};
-        dailyForecasts.value.forEach(d => {
-          if (d.systemForecast != null) data[d.date] = d.systemForecast;
-        });
-        const key = storagePrefix.value + 'systemForecast_save';
-        // 合并已有历史（不覆盖过去已保存的值）
-        const raw = localStorage.getItem(key);
-        const existing = raw ? JSON.parse(raw) : {};
-        let merged = { ...existing };
-        // 新值只覆盖未来日期和今天，不覆盖过去日期
-        const today = new Date().toISOString().slice(0, 10);
-        for (const [date, val] of Object.entries(data)) {
-          if (date >= today || !existing[date]) {
-            merged[date] = val;
-          }
-        }
-        localStorage.setItem(key, JSON.stringify(merged));
-        // Supabase sync (fire-and-forget)
-        if (_sb) {
-          const store = selectedStore.value?.name || '';
-          const rows = Object.entries(merged).map(([date, val]) => ({
-            date, store_name: store,
-            user_name: '_system_',
-            forecast_value: val
-          }));
-          if (rows.length) {
-            _sb.from('forecasts').upsert(rows, { onConflict: 'date,store_name,user_name' })
-              .then(() => console.log('[Supabase] System forecasts saved:', rows.length))
-              .catch(e => console.warn('[Supabase] System forecast sync failed:', e));
-          }
-        }
-      } catch(e) { console.warn('系统预估保存失败:', e); }
     }
 
     // 准确率：预估订单 / 实际订单 × 100%，未填预估则为0%
     function getForecastAccuracy(d) {
       const eff = d.forecast || 0;
-      const actual = d.actualOrders ?? excelDailyTotals.value[d.date] ?? savedActualOrders.value[d.date] ?? null;
+      const actual = d.actualOrders !== undefined ? d.actualOrders : excelDailyTotals.value[d.date];
       if (!actual || actual === 0) return null;
       if (!eff) return 0;
       return (eff / actual) * 100;
@@ -2013,7 +1849,7 @@ createApp({
     function getOverallAccuracy() {
       let totalForecast = 0, totalActual = 0;
       dailyForecasts.value.forEach(d => {
-        const actual = d.actualOrders ?? excelDailyTotals.value[d.date] ?? savedActualOrders.value[d.date] ?? null;
+        const actual = d.actualOrders !== undefined ? d.actualOrders : excelDailyTotals.value[d.date];
         if (actual && actual > 0) {
           totalForecast += d.forecast || 0;
           totalActual += actual;
@@ -2094,20 +1930,12 @@ createApp({
       while (cur <= end) {
         const dateStr = formatDateLocal(cur);
         const lwActual = getLastWeekActual(dateStr);
-        // 实际订单：当前Excel优先，缺失时从localStorage历史数据补齐
-        const actualFromExcel = excelDailyTotals.value[dateStr];
-        const actualFromStorage = savedActualOrders.value[dateStr];
-        const mergedActual = actualFromExcel ?? actualFromStorage ?? null;
-        // 仓T：当前数据优先，缺失时从localStorage历史数据补齐
-        const wtFromCurrent = warehouseTData[dateStr];
-        const wtFromStorage = savedWarehouseT.value[dateStr];
-        if (wtFromCurrent == null && wtFromStorage != null) warehouseTData[dateStr] = wtFromStorage;
         forecasts.push({
           date: dateStr,
           dayOfWeek: getDayOfWeek(dateStr),
           lastWeekActual: lwActual,
-          systemForecast: modelForecastHistory[dateStr] ?? modelForecastData[dateStr] ?? lwActual,
-          actualOrders: mergedActual,
+          systemForecast: lwActual,
+          actualOrders: excelDailyTotals.value[dateStr] ?? null,
           forecast: existing[dateStr] !== undefined ? existing[dateStr] : 0,
         });
         cur.setDate(cur.getDate() + 1);
@@ -2119,7 +1947,7 @@ createApp({
       const d = new Date(dateStr + 'T00:00:00');
       d.setDate(d.getDate() - 7);
       const lwStr = formatDateLocal(d);
-      return excelDailyTotals.value[lwStr] ?? savedActualOrders.value[lwStr] ?? null;
+      return excelDailyTotals.value[lwStr] ?? null;
     }
 
     function updateLastWeekActuals() {
@@ -2512,16 +2340,6 @@ createApp({
     function saveEmployeePool() {
       try {
         localStorage.setItem(storagePrefix.value + 'employee_pool', JSON.stringify(employeePool.value));
-        // Supabase sync
-        if (_sb) {
-          const store = selectedStore.value?.name || '';
-          _sb.from('schedules').upsert({
-            date: new Date().toISOString().slice(0, 10), store_name: store,
-            employee_name: '_employee_pool_', role: 'config',
-            time_slot: JSON.stringify(employeePool.value), status: 'active'
-          }, { onConflict: 'date,store_name,employee_name,role' })
-            .catch(e => console.warn('[Supabase] Employee pool sync failed:', e));
-        }
       } catch (e) { console.error('保存员工池失败:', e); }
     }
     function loadEmployeePool() {
@@ -3072,15 +2890,6 @@ createApp({
           savedAt: new Date().toISOString(),
         };
         localStorage.setItem(storagePrefix.value + 'scheduling_by_date', JSON.stringify(data));
-        // Supabase sync
-        if (_sb) {
-          _sb.from('schedules').upsert({
-            date: date, store_name: store,
-            employee_name: '_schedule_by_date_', role: 'schedule',
-            time_slot: JSON.stringify(data[key]), status: 'active'
-          }, { onConflict: 'date,store_name,employee_name,role' })
-            .catch(e => console.warn('[Supabase] Schedule sync failed:', e));
-        }
       } catch (e) { console.error('保存排班失败:', e); }
     }
 
@@ -3299,16 +3108,6 @@ createApp({
         // Sort by date descending
         folder.sort((a, b) => b.date.localeCompare(a.date));
         localStorage.setItem(storagePrefix.value + 'scheduling_folder', JSON.stringify(folder));
-        // Supabase sync
-        if (_sb) {
-          const store = schedule.store || selectedStore.value?.name || '';
-          _sb.from('schedules').upsert({
-            date: schedule.date, store_name: store,
-            employee_name: '_folder_' + schedule.date, role: 'folder',
-            time_slot: JSON.stringify(schedule), status: 'active'
-          }, { onConflict: 'date,store_name,employee_name,role' })
-            .catch(e => console.warn('[Supabase] Folder sync failed:', e));
-        }
         savedSchedules.value = folder;
       } catch (e) {
         console.error('保存排班失败:', e);
@@ -3570,9 +3369,6 @@ createApp({
         excelDailyTotals.value = {};
         if (!excelFileName.value) excelRows.value = [];
       }
-      // 将当前Excel实际订单合并到localStorage持久化存储（增量累积，不覆盖历史）
-      Object.assign(savedActualOrders.value, excelDailyTotals.value);
-      try { localStorage.setItem(storagePrefix.value + 'orderForecast_actuals', JSON.stringify(savedActualOrders.value)); } catch(e) {}
       hourlyDistribution.value = getDefaultDistribution(timeSlots.value);
       staffList.value.forEach(s => {
         const newShifts = {};
@@ -3605,14 +3401,8 @@ createApp({
       nextTick(() => updateWeatherChart());
     });
 
-    watch(selectedWeatherDate, () => {
-      nextTick(() => updateWeatherChart());
-    });
-
     watch(selectedDate, () => {
-      // 日期切换时始终更新时段分布（工作日/周末占比不同）
-      hourlyDistribution.value = getDefaultDistribution(timeSlots.value);
-      // 尝试加载已保存的排班
+      // 日期切换时尝试加载已保存的排班
       const loaded = loadScheduleForDate();
       if (!loaded) {
         // 无保存记录，显示员工池成员（无排班），让用户看到可排班人员
@@ -3628,6 +3418,7 @@ createApp({
           timeSlots.value.forEach(slot => { staff.shifts[slot.label] = false; });
           return staff;
         });
+        hourlyDistribution.value = getDefaultDistribution(timeSlots.value);
       }
       nextTick(() => {
         updateWeatherChart();
@@ -3649,109 +3440,6 @@ createApp({
     });
 
     // ==================== 初始化 ====================
-    
-    // Supabase: load shared schedules on page load
-    async function sbLoadSchedules() {
-      if (!_sb) return;
-      const store = selectedStore.value?.name || '';
-      try {
-        const { data, error } = await _sb
-          .from('schedules')
-          .select('*')
-          .eq('store_name', store)
-          .order('updated_at', { ascending: false });
-        if (error || !data) return;
-        console.log('[Supabase] Loaded', data.length, 'schedule rows');
-        
-        // Process employee pool
-        const poolRow = data.find(r => r.employee_name === '_employee_pool_');
-        if (poolRow && poolRow.time_slot) {
-          try {
-            const pool = JSON.parse(poolRow.time_slot);
-            if (Array.isArray(pool) && pool.length > 0) {
-              employeePool.value = pool;
-              console.log('[Supabase] Restored employee pool:', pool.length, 'employees');
-            }
-          } catch(e) {}
-        }
-        
-        // Process schedule_by_date entries
-        const schedRows = data.filter(r => r.employee_name === '_schedule_by_date_');
-        if (schedRows.length) {
-          const raw = localStorage.getItem(storagePrefix.value + 'scheduling_by_date');
-          const existing = raw ? JSON.parse(raw) : {};
-          let merged = 0;
-          schedRows.forEach(r => {
-            const key = r.date + '_' + r.store_name;
-            if (!existing[key] && r.time_slot) {
-              try { existing[key] = JSON.parse(r.time_slot); merged++; } catch(e) {}
-            }
-          });
-          if (merged > 0) {
-            localStorage.setItem(storagePrefix.value + 'scheduling_by_date', JSON.stringify(existing));
-            console.log('[Supabase] Merged', merged, 'schedules from cloud');
-          }
-        }
-        
-        // Process folder entries
-        const folderRows = data.filter(r => r.employee_name.startsWith('_folder_'));
-        if (folderRows.length) {
-          const raw = localStorage.getItem(storagePrefix.value + 'scheduling_folder');
-          const existing = raw ? JSON.parse(raw) : [];
-          const existingDates = new Set(existing.map(f => f.date));
-          let merged = 0;
-          folderRows.forEach(r => {
-            if (!existingDates.has(r.date) && r.time_slot) {
-              try { existing.push(JSON.parse(r.time_slot)); merged++; } catch(e) {}
-            }
-          });
-          if (merged > 0) {
-            localStorage.setItem(storagePrefix.value + 'scheduling_folder', JSON.stringify(existing));
-            savedSchedules.value = existing;
-            console.log('[Supabase] Merged', merged, 'folder entries from cloud');
-          }
-        }
-        
-        // Process forecast entries (separate system vs manual)
-        const { data: fcData } = await _sb
-          .from('forecasts')
-          .select('date, forecast_value, user_name')
-          .eq('store_name', store)
-          .gt('forecast_value', 0);
-        if (fcData && fcData.length) {
-          // Manual forecasts
-          const manualRows = fcData.filter(r => r.user_name !== '_system_');
-          if (manualRows.length) {
-            const raw = localStorage.getItem(storagePrefix.value + 'orderForecast_save');
-            const existing = raw ? JSON.parse(raw) : {};
-            let merged = 0;
-            manualRows.forEach(r => {
-              if (!existing[r.date]) { existing[r.date] = r.forecast_value; merged++; }
-            });
-            if (merged > 0) {
-              localStorage.setItem(storagePrefix.value + 'orderForecast_save', JSON.stringify(existing));
-              console.log('[Supabase] Merged', merged, 'manual forecasts from cloud');
-              loadSavedForecasts();
-            }
-          }
-          // System forecasts
-          const sysRows = fcData.filter(r => r.user_name === '_system_');
-          if (sysRows.length) {
-            const raw = localStorage.getItem(storagePrefix.value + 'systemForecast_save');
-            const existing = raw ? JSON.parse(raw) : {};
-            let merged = 0;
-            sysRows.forEach(r => {
-              if (!existing[r.date]) { existing[r.date] = r.forecast_value; merged++; }
-            });
-            if (merged > 0) {
-              localStorage.setItem(storagePrefix.value + 'systemForecast_save', JSON.stringify(existing));
-              console.log('[Supabase] Merged', merged, 'system forecasts from cloud');
-            }
-          }
-        }
-      } catch(e) { console.warn('[Supabase] Load failed:', e); }
-    }
-
     onMounted(() => {
       Chart.defaults.font.family = "'Plus Jakarta Sans', 'Noto Sans SC', system-ui, sans-serif";
       Chart.defaults.color = '#6B6760';
@@ -3782,11 +3470,8 @@ createApp({
       }
       // 优先加载已保存的预估数据
       loadSavedForecasts();
-      // 保存系统预估到localStorage+Supabase（持久化）
-      saveSystemForecasts();
       // 加载排班文件夹
       loadSavedSchedules();
-      sbLoadSchedules();
       nextTick(() => {
         updateWeatherChart();
         updateDistributionChart();
@@ -3798,10 +3483,9 @@ createApp({
       // Data
       brands, selectedBrandIdx, selectedStoreIdx, showSettings,
       currentBrandStores, selectedStore,
-      weatherData, weatherLoading, weatherError, selectedDate, selectedWeatherDate,
+      weatherData, weatherLoading, weatherError, selectedDate,
       dailyWeather, hourlyWeather,
       forecastStartDate, forecastEndDate, dailyForecasts, warehouseTData,
-      savedActualOrders, savedWarehouseT,
       excelFileName, excelRows, excelColumns, timeColumnName, excelError,
       hourlyDistribution,
       efficiencyPerHour, staffList,
