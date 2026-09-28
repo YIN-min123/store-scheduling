@@ -382,11 +382,12 @@
         <div v-if="weatherError" class="text-sm" style="color: var(--color-red);">{{ weatherError }}</div>
       </div>
 
-      <!-- 近7天预报卡片（当日+未来6天，不联动日期选择） -->
+      <!-- 近7天预报卡片（点击联动时段天气） -->
       <div v-if="dailyWeather.length" class="flex gap-3 overflow-x-auto pb-2 scroll-x justify-center">
         <div v-for="day in dailyWeather" :key="day.date"
-          class="weather-card flex-shrink-0 w-28 sm:w-32 p-3 rounded-xl border-2"
-          style="border-color: var(--color-line); background: var(--color-surface);">
+          @click="selectedDate = day.date"
+          class="weather-card flex-shrink-0 w-28 sm:w-32 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200"
+          :style="{ borderColor: selectedDate === day.date ? 'var(--theme-weather)' : 'var(--color-line)', background: selectedDate === day.date ? 'var(--theme-weather-soft)' : 'var(--color-surface)' }">
           <div class="text-center">
             <div class="text-xs font-semibold font-mono">{{ day.date.slice(5) }}</div>
             <div class="text-xs" style="color: var(--color-muted);">{{ day.dayOfWeek }}</div>
@@ -472,6 +473,7 @@
                   style="min-width: 72px; border-bottom: 2px solid var(--color-line);">
                   <div class="text-xs font-semibold font-mono" :style="selectedDate === d.date ? 'color: var(--theme-order);' : 'color: var(--color-ink);'">{{ d.date.slice(5) }}</div>
                   <div class="text-[10px]" style="color: var(--color-muted);">{{ d.dayOfWeek }}</div>
+                  <div v-if="d.holiday" class="text-[9px] font-semibold mt-0.5 px-1 rounded" style="background: #FEF3C7; color: #92400E;">{{ d.holiday }}</div>
                 </th>
                 <th class="py-2 px-3 text-center font-semibold whitespace-nowrap" style="border-bottom: 2px solid var(--color-line); color: var(--theme-order);">合计</th>
               </tr>
@@ -1346,6 +1348,37 @@ createApp({
         '2026-09-16': 9.31, '2026-09-17': 12.31, '2026-09-18': 9.86, '2026-09-19': 28.86, '2026-09-20': 8.6, '2026-09-21': 4.92, '2026-09-22': 8.25, '2026-09-23': 4.85, '2026-09-24': 17.1, '2026-09-25': 49.58, '2026-09-26': 8.01, '2026-09-27': 8.23},
     };
 
+    // ==================== 节假日预估配置 ====================
+    // 基于2026中秋(9/25-27)和端午(6/19-21)实际数据与正常周末的对比分析
+    // multipliers: 每天相对于"正常周末基准"的倍率（1.0 = 等于周末均值）
+    // distribution: 该假期使用哪种时段分布（'weekend' 或 'weekday'）
+    const holidayConfig = {
+      // 2026 中秋节: 9/25(周五) - 9/27(周日)
+      // 实际数据: 374/281/293 vs 正常周末均值~306 → 倍率 1.22/0.92/0.96
+      midautumn_2026: {
+        name: '中秋节',
+        start: '2026-09-25', end: '2026-09-27',
+        distribution: 'weekend',
+        multipliers: [1.22, 0.92, 0.96],
+      },
+      // 2026 端午节: 6/19(周五) - 6/21(周日)
+      // 实际数据: 281/250/249 vs 正常周末均值~305 → 倍率 0.92/0.82/0.82（端午无拉动）
+      dragonboat_2026: {
+        name: '端午节',
+        start: '2026-06-19', end: '2026-06-21',
+        distribution: 'weekend',
+        multipliers: [0.92, 0.82, 0.82],
+      },
+      // 2026 国庆节: 10/1(周四) - 10/7(周三)
+      // 参考中秋模式 + 长假出行特征：首日聚餐备货高峰，中间出行低谷，尾段回归
+      nationalday_2026: {
+        name: '国庆节',
+        start: '2026-10-01', end: '2026-10-07',
+        distribution: 'weekend',
+        multipliers: [1.22, 0.92, 0.80, 0.78, 0.82, 0.90, 1.05],
+      },
+    };
+
     // Open-Meteo 天气预报 (西安 34.26,108.94) 更新于 2026-09-17
     const staticWeatherData = {
       '西安': [
@@ -1583,7 +1616,11 @@ createApp({
         if (obj && typeof obj === 'object') {
           const d = selectedDate.value;
           let isWeekend = false;
-          if (d) { const dt = new Date(d + 'T00:00:00'); const day = dt.getDay(); isWeekend = (day === 0 || day === 6); }
+          if (d) {
+            const holiday = getHolidayInfo(d);
+            if (holiday) { isWeekend = (holiday.distribution === 'weekend'); }
+            else { const dt = new Date(d + 'T00:00:00'); const day = dt.getDay(); isWeekend = (day === 0 || day === 6); }
+          }
           return isWeekend ? obj.weekend : obj.weekday;
         }
         return null;
@@ -1746,7 +1783,7 @@ createApp({
       '当日天气': '当天的天气预报数据，来源：Open-Meteo API。包含天气状况、最高/最低温度、降水概率。',
       '上周同期实际': '7天前的实际订单数，来源：导入的拣货单Excel汇总。作为环比/同比的基准参考值。',
       '实际订单': '当天的实际订单数，来源：FBI DataMate。通常在次日更新，历史日期可查看，未来日期显示"—"。',
-      '系统预估': '系统自动生成的订单预估值，来源：FBI DataMate 算法模型。基于历史数据、天气、星期等因素综合计算。',
+      '系统预估': '系统自动生成的订单预估值。普通日期=上周同期实际；节假日=正常周末基准×假日倍率（基于中秋/端午实际数据）。时段分布在节假日自动切换为周末模式。',
       '预估订单': '最终采用的预估值。优先级：用户手动输入 > 系统预估 > 上周同期实际。未填写时自动回退到系统预估。',
       '环比': '当日 vs 前一天实际订单的变化百分比。过去日期使用实际订单，当日及未来使用预估订单。公式：(当日订单 - 昨日实际) / 昨日实际 × 100%。无前日数据时显示"—"。',
       '同比': '与上周同期对比的变化百分比。过去日期：(实际订单 - 上周同期实际) / 上周同期实际 × 100%；当日及未来日期：(预估订单 - 上周同期实际) / 上周同期实际 × 100%。当分子=分母时显示"+0.0%"。',
@@ -1930,13 +1967,23 @@ createApp({
       while (cur <= end) {
         const dateStr = formatDateLocal(cur);
         const lwActual = getLastWeekActual(dateStr);
+        const holiday = getHolidayInfo(dateStr);
+        let systemForecast = lwActual;
+        if (holiday) {
+          // 节假日：用周末基准 × 假日倍率 替代"上周同期"
+          const baseline = getWeekendBaseline();
+          if (baseline > 0) {
+            systemForecast = Math.round(baseline * holiday.multiplier);
+          }
+        }
         forecasts.push({
           date: dateStr,
           dayOfWeek: getDayOfWeek(dateStr),
           lastWeekActual: lwActual,
-          systemForecast: lwActual,
+          systemForecast: systemForecast,
           actualOrders: excelDailyTotals.value[dateStr] ?? null,
-          forecast: existing[dateStr] !== undefined ? existing[dateStr] : 0,
+          forecast: existing[dateStr] !== undefined ? existing[dateStr] : (holiday ? systemForecast : 0),
+          holiday: holiday ? holiday.name : null,
         });
         cur.setDate(cur.getDate() + 1);
       }
@@ -1948,6 +1995,36 @@ createApp({
       d.setDate(d.getDate() - 7);
       const lwStr = formatDateLocal(d);
       return excelDailyTotals.value[lwStr] ?? null;
+    }
+
+    // ==================== 节假日辅助函数 ====================
+    function getHolidayInfo(dateStr) {
+      for (const key of Object.keys(holidayConfig)) {
+        const h = holidayConfig[key];
+        if (dateStr >= h.start && dateStr <= h.end) {
+          const dayIndex = Math.floor((new Date(dateStr) - new Date(h.start)) / 86400000);
+          const multiplier = h.multipliers[dayIndex] || h.multipliers[h.multipliers.length - 1];
+          return { name: h.name + '第' + (dayIndex + 1) + '天', multiplier, distribution: h.distribution };
+        }
+      }
+      return null;
+    }
+
+    function getWeekendBaseline() {
+      // 从实际数据中取最近的正常周末均值（排除节假日期间的周末）
+      const data = excelDailyTotals.value;
+      const dates = Object.keys(data).sort().reverse();
+      let weekendSum = 0, weekendCount = 0;
+      for (const ds of dates) {
+        const dt = new Date(ds + 'T00:00:00');
+        const dow = dt.getDay();
+        if (dow !== 0 && dow !== 6) continue; // 只看周六日
+        if (getHolidayInfo(ds)) continue; // 排除节假日周末
+        weekendSum += data[ds];
+        weekendCount++;
+        if (weekendCount >= 4) break; // 取最近4个正常周末日
+      }
+      return weekendCount > 0 ? Math.round(weekendSum / weekendCount) : 0;
     }
 
     function updateLastWeekActuals() {
