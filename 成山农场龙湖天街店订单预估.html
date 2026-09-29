@@ -294,7 +294,7 @@
       <div class="mr-6">
         <h1 class="app-title">订单预估与排班</h1>
         <div class="app-title-sub">Forecast &amp; Scheduling</div>
-        <div class="text-[10px] mt-0.5" style="color: var(--color-muted);">v4.3</div>
+        <div class="text-[10px] mt-0.5" style="color: var(--color-muted);">v4.4</div>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-xs font-medium uppercase tracking-wider" style="color: var(--color-muted);">品牌</label>
@@ -1191,27 +1191,27 @@ createApp({
 
     // ==================== 品牌门店数据 ====================
     // 成山农场门店级拣货单分布数据，按门店拆分
-    // 龙湖天街店：改用「拣货下发时间」口径（2026.5.1-9.27全量导出，工作日n=28366/周末n=14016/中秋n=691）。
+    // 龙湖天街店：「拣货下发时间」口径，按拣货单号去重（最新周度导出 2026.9.14-9.20，工作日n=1470/周末n=762）。
     //   下发=拣货任务真正释放给店员的时间，才是排班依据；旧的下单时间口径会虚增20:00-21:30晚间尾巴、压低07:30开店批次。
     let storeDistData = {
       '龙湖天街店': {weekday:[
-        {start:'07:00',ratio:0.000000},{start:'07:30',ratio:0.038779},{start:'08:00',ratio:0.019566},{start:'08:30',ratio:0.026722},
-        {start:'09:00',ratio:0.032468},{start:'09:30',ratio:0.038074},{start:'10:00',ratio:0.043503},{start:'10:30',ratio:0.047945},
-        {start:'11:00',ratio:0.046499},{start:'11:30',ratio:0.042093},{start:'12:00',ratio:0.036100},{start:'12:30',ratio:0.034830},
-        {start:'13:00',ratio:0.031129},{start:'13:30',ratio:0.030318},{start:'14:00',ratio:0.027674},{start:'14:30',ratio:0.030741},
-        {start:'15:00',ratio:0.033103},{start:'15:30',ratio:0.037298},{start:'16:00',ratio:0.041070},{start:'16:30',ratio:0.050906},
-        {start:'17:00',ratio:0.051893},{start:'17:30',ratio:0.052845},{start:'18:00',ratio:0.051188},{start:'18:30',ratio:0.054572},
-        {start:'19:00',ratio:0.054925},{start:'19:30',ratio:0.038321},{start:'20:00',ratio:0.006134},{start:'20:30',ratio:0.001269},
-        {start:'21:00',ratio:0.000000},{start:'21:30',ratio:0.000000},
+        {start:'07:00',ratio:0.000000},{start:'07:30',ratio:0.052381},{start:'08:00',ratio:0.019728},{start:'08:30',ratio:0.027891},
+        {start:'09:00',ratio:0.030612},{start:'09:30',ratio:0.040136},{start:'10:00',ratio:0.041497},{start:'10:30',ratio:0.046939},
+        {start:'11:00',ratio:0.052381},{start:'11:30',ratio:0.036735},{start:'12:00',ratio:0.037415},{start:'12:30',ratio:0.036735},
+        {start:'13:00',ratio:0.027891},{start:'13:30',ratio:0.025170},{start:'14:00',ratio:0.025850},{start:'14:30',ratio:0.025170},
+        {start:'15:00',ratio:0.032653},{start:'15:30',ratio:0.035374},{start:'16:00',ratio:0.047619},{start:'16:30',ratio:0.055102},
+        {start:'17:00',ratio:0.044218},{start:'17:30',ratio:0.054422},{start:'18:00',ratio:0.046259},{start:'18:30',ratio:0.054422},
+        {start:'19:00',ratio:0.058503},{start:'19:30',ratio:0.040136},{start:'20:00',ratio:0.004762},{start:'20:30',ratio:0.000000},
+        {start:'21:00',ratio:0.000000},{start:'21:30',ratio:0.000000}
       ],weekend:[
-        {start:'07:00',ratio:0.000000},{start:'07:30',ratio:0.040596},{start:'08:00',ratio:0.022546},{start:'08:30',ratio:0.029538},
-        {start:'09:00',ratio:0.038741},{start:'09:30',ratio:0.049087},{start:'10:00',ratio:0.053082},{start:'10:30',ratio:0.059075},
-        {start:'11:00',ratio:0.052797},{start:'11:30',ratio:0.044449},{start:'12:00',ratio:0.038955},{start:'12:30',ratio:0.036672},
-        {start:'13:00',ratio:0.033034},{start:'13:30',ratio:0.034033},{start:'14:00',ratio:0.030537},{start:'14:30',ratio:0.036030},
-        {start:'15:00',ratio:0.031678},{start:'15:30',ratio:0.036815},{start:'16:00',ratio:0.041952},{start:'16:30',ratio:0.042023},
-        {start:'17:00',ratio:0.044521},{start:'17:30',ratio:0.044235},{start:'18:00',ratio:0.042166},{start:'18:30',ratio:0.040953},
-        {start:'19:00',ratio:0.039598},{start:'19:30',ratio:0.030465},{start:'20:00',ratio:0.005351},{start:'20:30',ratio:0.001070},
-        {start:'21:00',ratio:0.000000},{start:'21:30',ratio:0.000000},
+        {start:'07:00',ratio:0.000000},{start:'07:30',ratio:0.043307},{start:'08:00',ratio:0.026247},{start:'08:30',ratio:0.040682},
+        {start:'09:00',ratio:0.040682},{start:'09:30',ratio:0.044619},{start:'10:00',ratio:0.052493},{start:'10:30',ratio:0.047244},
+        {start:'11:00',ratio:0.048556},{start:'11:30',ratio:0.053806},{start:'12:00',ratio:0.039370},{start:'12:30',ratio:0.036745},
+        {start:'13:00',ratio:0.032808},{start:'13:30',ratio:0.023622},{start:'14:00',ratio:0.034121},{start:'14:30',ratio:0.035433},
+        {start:'15:00',ratio:0.027559},{start:'15:30',ratio:0.036745},{start:'16:00',ratio:0.036745},{start:'16:30',ratio:0.032808},
+        {start:'17:00',ratio:0.039370},{start:'17:30',ratio:0.044619},{start:'18:00',ratio:0.043307},{start:'18:30',ratio:0.047244},
+        {start:'19:00',ratio:0.057743},{start:'19:30',ratio:0.030184},{start:'20:00',ratio:0.003937},{start:'20:30',ratio:0.000000},
+        {start:'21:00',ratio:0.000000},{start:'21:30',ratio:0.000000}
       ],holiday:[
         {start:'07:00',ratio:0.000000},{start:'07:30',ratio:0.049204},{start:'08:00',ratio:0.027496},{start:'08:30',ratio:0.049204},
         {start:'09:00',ratio:0.059334},{start:'09:30',ratio:0.063676},{start:'10:00',ratio:0.056440},{start:'10:30',ratio:0.063676},
