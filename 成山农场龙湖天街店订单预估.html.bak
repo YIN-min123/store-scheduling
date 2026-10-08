@@ -294,7 +294,7 @@
       <div class="mr-6">
         <h1 class="app-title">订单预估与排班</h1>
         <div class="app-title-sub">Forecast &amp; Scheduling</div>
-        <div class="text-[10px] mt-0.5" style="color: var(--color-muted);">v4.5</div>
+        <div class="text-[10px] mt-0.5" style="color: var(--color-muted);">v4.3</div>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-xs font-medium uppercase tracking-wider" style="color: var(--color-muted);">品牌</label>
@@ -382,12 +382,11 @@
         <div v-if="weatherError" class="text-sm" style="color: var(--color-red);">{{ weatherError }}</div>
       </div>
 
-      <!-- 近7天预报卡片（点击联动时段天气） -->
+      <!-- 近7天预报卡片（当日+未来6天，不联动日期选择） -->
       <div v-if="dailyWeather.length" class="flex gap-3 overflow-x-auto pb-2 scroll-x justify-center">
         <div v-for="day in dailyWeather" :key="day.date"
-          @click="selectedDate = day.date"
-          class="weather-card flex-shrink-0 w-28 sm:w-32 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200"
-          :style="{ borderColor: selectedDate === day.date ? 'var(--theme-weather)' : 'var(--color-line)', background: selectedDate === day.date ? 'var(--theme-weather-soft)' : 'var(--color-surface)' }">
+          class="weather-card flex-shrink-0 w-28 sm:w-32 p-3 rounded-xl border-2"
+          style="border-color: var(--color-line); background: var(--color-surface);">
           <div class="text-center">
             <div class="text-xs font-semibold font-mono">{{ day.date.slice(5) }}</div>
             <div class="text-xs" style="color: var(--color-muted);">{{ day.dayOfWeek }}</div>
@@ -473,7 +472,6 @@
                   style="min-width: 72px; border-bottom: 2px solid var(--color-line);">
                   <div class="text-xs font-semibold font-mono" :style="selectedDate === d.date ? 'color: var(--theme-order);' : 'color: var(--color-ink);'">{{ d.date.slice(5) }}</div>
                   <div class="text-[10px]" style="color: var(--color-muted);">{{ d.dayOfWeek }}</div>
-                  <div v-if="d.holiday" class="text-[9px] font-semibold mt-0.5 px-1 rounded" style="background: #FEF3C7; color: #92400E;">{{ d.holiday }}</div>
                 </th>
                 <th class="py-2 px-3 text-center font-semibold whitespace-nowrap" style="border-bottom: 2px solid var(--color-line); color: var(--theme-order);">合计</th>
               </tr>
@@ -1190,37 +1188,26 @@ createApp({
     };
 
     // ==================== 品牌门店数据 ====================
-    // 成山农场门店级拣货单分布数据，按门店拆分
-    // 龙湖天街店：「拣货下发时间」口径，按拣货单号去重（最新周度导出 2026.08.31-2026.09.06，工作日n=1756/周末n=830）。
-    //   下发=拣货任务真正释放给店员的时间，才是排班依据；旧的下单时间口径会虚增20:00-21:30晚间尾巴、压低07:30开店批次。
+    // 成山农场门店级拣货单分布数据（2026.8.31-9.6，按门店拆分）
     let storeDistData = {
       '龙湖天街店': {weekday:[
-{start:'07:00',ratio:0.000000},{start:'07:30',ratio:0.043850},{start:'08:00',ratio:0.025626},{start:'08:30',ratio:0.027904},
+        {start:'07:00',ratio:0.0},{start:'07:30',ratio:0.04385},{start:'08:00',ratio:0.025626},{start:'08:30',ratio:0.027904},
         {start:'09:00',ratio:0.041002},{start:'09:30',ratio:0.037585},{start:'10:00',ratio:0.040433},{start:'10:30',ratio:0.037585},
-        {start:'11:00',ratio:0.046128},{start:'11:30',ratio:0.041572},{start:'12:00',ratio:0.032460},{start:'12:30',ratio:0.036446},
-        {start:'13:00',ratio:0.033030},{start:'13:30',ratio:0.030752},{start:'14:00',ratio:0.026765},{start:'14:30',ratio:0.025057},
-        {start:'15:00',ratio:0.032460},{start:'15:30',ratio:0.045558},{start:'16:00',ratio:0.043850},{start:'16:30',ratio:0.043280},
+        {start:'11:00',ratio:0.046128},{start:'11:30',ratio:0.041572},{start:'12:00',ratio:0.03246},{start:'12:30',ratio:0.036446},
+        {start:'13:00',ratio:0.03303},{start:'13:30',ratio:0.030752},{start:'14:00',ratio:0.026765},{start:'14:30',ratio:0.025057},
+        {start:'15:00',ratio:0.03246},{start:'15:30',ratio:0.045558},{start:'16:00',ratio:0.04385},{start:'16:30',ratio:0.04328},
         {start:'17:00',ratio:0.055239},{start:'17:30',ratio:0.047836},{start:'18:00',ratio:0.053531},{start:'18:30',ratio:0.052392},
-        {start:'19:00',ratio:0.055239},{start:'19:30',ratio:0.040433},{start:'20:00',ratio:0.003986},{start:'20:30',ratio:0.000000},
-        {start:'21:00',ratio:0.000000},{start:'21:30',ratio:0.000000}
+        {start:'19:00',ratio:0.055239},{start:'19:30',ratio:0.040433},{start:'20:00',ratio:0.003986},{start:'20:30',ratio:0.0},
+        {start:'21:00',ratio:0.0},{start:'21:30',ratio:0.0},
       ],weekend:[
-{start:'07:00',ratio:0.000000},{start:'07:30',ratio:0.049398},{start:'08:00',ratio:0.028916},{start:'08:30',ratio:0.031325},
+        {start:'07:00',ratio:0.0},{start:'07:30',ratio:0.049398},{start:'08:00',ratio:0.028916},{start:'08:30',ratio:0.031325},
         {start:'09:00',ratio:0.042169},{start:'09:30',ratio:0.045783},{start:'10:00',ratio:0.073494},{start:'10:30',ratio:0.061446},
-        {start:'11:00',ratio:0.049398},{start:'11:30',ratio:0.045783},{start:'12:00',ratio:0.042169},{start:'12:30',ratio:0.034940},
+        {start:'11:00',ratio:0.049398},{start:'11:30',ratio:0.045783},{start:'12:00',ratio:0.042169},{start:'12:30',ratio:0.03494},
         {start:'13:00',ratio:0.024096},{start:'13:30',ratio:0.027711},{start:'14:00',ratio:0.019277},{start:'14:30',ratio:0.033735},
-        {start:'15:00',ratio:0.028916},{start:'15:30',ratio:0.032530},{start:'16:00',ratio:0.046988},{start:'16:30',ratio:0.034940},
+        {start:'15:00',ratio:0.028916},{start:'15:30',ratio:0.03253},{start:'16:00',ratio:0.046988},{start:'16:30',ratio:0.03494},
         {start:'17:00',ratio:0.049398},{start:'17:30',ratio:0.042169},{start:'18:00',ratio:0.042169},{start:'18:30',ratio:0.038554},
-        {start:'19:00',ratio:0.043373},{start:'19:30',ratio:0.028916},{start:'20:00',ratio:0.002410},{start:'20:30',ratio:0.000000},
-        {start:'21:00',ratio:0.000000},{start:'21:30',ratio:0.000000}
-      ],holiday:[
-        {start:'07:00',ratio:0.000000},{start:'07:30',ratio:0.049204},{start:'08:00',ratio:0.027496},{start:'08:30',ratio:0.049204},
-        {start:'09:00',ratio:0.059334},{start:'09:30',ratio:0.063676},{start:'10:00',ratio:0.056440},{start:'10:30',ratio:0.063676},
-        {start:'11:00',ratio:0.046310},{start:'11:30',ratio:0.050651},{start:'12:00',ratio:0.031838},{start:'12:30',ratio:0.037627},
-        {start:'13:00',ratio:0.036179},{start:'13:30',ratio:0.036179},{start:'14:00',ratio:0.026049},{start:'14:30',ratio:0.028944},
-        {start:'15:00',ratio:0.024602},{start:'15:30',ratio:0.031838},{start:'16:00',ratio:0.033285},{start:'16:30',ratio:0.039074},
-        {start:'17:00',ratio:0.046310},{start:'17:30',ratio:0.033285},{start:'18:00',ratio:0.043415},{start:'18:30',ratio:0.026049},
-        {start:'19:00',ratio:0.026049},{start:'19:30',ratio:0.031838},{start:'20:00',ratio:0.001447},{start:'20:30',ratio:0.000000},
-        {start:'21:00',ratio:0.000000},{start:'21:30',ratio:0.000000},
+        {start:'19:00',ratio:0.043373},{start:'19:30',ratio:0.028916},{start:'20:00',ratio:0.00241},{start:'20:30',ratio:0.0},
+        {start:'21:00',ratio:0.0},{start:'21:30',ratio:0.0},
       ]},
       '凯德广场店': {weekday:[
         {start:'07:00',ratio:0.009167},{start:'07:30',ratio:0.005348},{start:'08:00',ratio:0.020626},{start:'08:30',ratio:0.019099},
@@ -1321,7 +1308,7 @@ createApp({
     // 成山农场门店级每日订单汇总（2026.8.8-9.16）
     // FBI看板1796001 门店级每日订单 (2026.8.8-9.16)
     let storeDailyData = {
-      '龙湖天街店': {'2026-08-08':377,'2026-08-09':380,'2026-08-10':354,'2026-08-11':251,'2026-08-12':267,'2026-08-13':315,'2026-08-14':294,'2026-08-15':389,'2026-08-16':352,'2026-08-17':283,'2026-08-18':347,'2026-08-19':281,'2026-08-20':317,'2026-08-21':343,'2026-08-22':465,'2026-08-23':417,'2026-08-24':348,'2026-08-25':370,'2026-08-26':378,'2026-08-27':406,'2026-08-28':398,'2026-08-29':393,'2026-08-30':414,'2026-08-31':347,'2026-09-01':378,'2026-09-02':333,'2026-09-03':335,'2026-09-04':303,'2026-09-05':392,'2026-09-06':412,'2026-09-07':324,'2026-09-08':365,'2026-09-09':414,'2026-09-10':365,'2026-09-11':329,'2026-09-12':376,'2026-09-13':368,'2026-09-14':311,'2026-09-15':306,'2026-09-16':306, '2026-09-17':253, '2026-09-18':265, '2026-09-19':370, '2026-09-20':356, '2026-09-21':233, '2026-09-22':247, '2026-09-23':254, '2026-09-24':317, '2026-09-25':374, '2026-09-26':281, '2026-09-27': 293, '2026-09-28': 276, '2026-09-29': 246, '2026-09-30': 247, '2026-10-01': 260, '2026-10-02': 252, '2026-10-03': 243, '2026-10-04': 249, '2026-10-05': 233, '2026-10-06': 264, '2026-10-07': 310},
+      '龙湖天街店': {'2026-08-08':377,'2026-08-09':380,'2026-08-10':354,'2026-08-11':251,'2026-08-12':267,'2026-08-13':315,'2026-08-14':294,'2026-08-15':389,'2026-08-16':352,'2026-08-17':283,'2026-08-18':347,'2026-08-19':281,'2026-08-20':317,'2026-08-21':343,'2026-08-22':465,'2026-08-23':417,'2026-08-24':348,'2026-08-25':370,'2026-08-26':378,'2026-08-27':406,'2026-08-28':398,'2026-08-29':393,'2026-08-30':414,'2026-08-31':347,'2026-09-01':378,'2026-09-02':333,'2026-09-03':335,'2026-09-04':303,'2026-09-05':392,'2026-09-06':412,'2026-09-07':324,'2026-09-08':365,'2026-09-09':414,'2026-09-10':365,'2026-09-11':329,'2026-09-12':376,'2026-09-13':368,'2026-09-14':311,'2026-09-15':306,'2026-09-16': 306},
     };
     // 成山农场品牌级汇总分布（全门店合计）
     let brandDistData = {
@@ -1343,20 +1330,11 @@ createApp({
         {start:'17:00',ratio:0.044476},{start:'17:30',ratio:0.042181},{start:'18:00',ratio:0.04132},{start:'18:30',ratio:0.032138},
         {start:'19:00',ratio:0.037303},{start:'19:30',ratio:0.028694},{start:'20:00',ratio:0.012626},{start:'20:30',ratio:0.007461},
         {start:'21:00',ratio:0.008034},{start:'21:30',ratio:0.009182},
-      ],holiday:[
-        {start:'07:00',ratio:0.004193},{start:'07:30',ratio:0.009434},{start:'08:00',ratio:0.015723},{start:'08:30',ratio:0.037736},
-        {start:'09:00',ratio:0.049266},{start:'09:30',ratio:0.063941},{start:'10:00',ratio:0.054507},{start:'10:30',ratio:0.060797},
-        {start:'11:00',ratio:0.048218},{start:'11:30',ratio:0.050314},{start:'12:00',ratio:0.033543},{start:'12:30',ratio:0.038784},
-        {start:'13:00',ratio:0.041929},{start:'13:30',ratio:0.035639},{start:'14:00',ratio:0.028302},{start:'14:30',ratio:0.033543},
-        {start:'15:00',ratio:0.024109},{start:'15:30',ratio:0.034591},{start:'16:00',ratio:0.038784},{start:'16:30',ratio:0.041929},
-        {start:'17:00',ratio:0.04717},{start:'17:30',ratio:0.038784},{start:'18:00',ratio:0.044025},{start:'18:30',ratio:0.030398},
-        {start:'19:00',ratio:0.033543},{start:'19:30',ratio:0.034591},{start:'20:00',ratio:0.006289},{start:'20:30',ratio:0.005241},
-        {start:'21:00',ratio:0.003145},{start:'21:30',ratio:0.01153},
       ]},
     };
     // FBI看板1796001 品牌级每日订单 (2026.8.8-9.13)
     let brandDailyData = {
-      '成山农场': {'2026-08-08':1386,'2026-08-09':1424,'2026-08-10':1261,'2026-08-11':1080,'2026-08-12':1186,'2026-08-13':1175,'2026-08-14':1182,'2026-08-15':1522,'2026-08-16':1546,'2026-08-17':1371,'2026-08-18':1469,'2026-08-19':1319,'2026-08-20':1312,'2026-08-21':1506,'2026-08-22':1867,'2026-08-23':1851,'2026-08-24':1525,'2026-08-25':1582,'2026-08-26':1517,'2026-08-27':1582,'2026-08-28':1418,'2026-08-29':1574,'2026-08-30':1762,'2026-08-31':1260,'2026-09-01':1395,'2026-09-02':1367,'2026-09-03':1361,'2026-09-04':1278,'2026-09-05':1692,'2026-09-06':1800,'2026-09-07':658,'2026-09-08':767,'2026-09-09':956,'2026-09-10':774,'2026-09-11':649,'2026-09-12':843,'2026-09-13':911,'2026-09-14':1368,'2026-09-15':1405,'2026-09-16':1321},
+      '成山农场': {'2026-08-08':1386,'2026-08-09':1424,'2026-08-10':1261,'2026-08-11':1080,'2026-08-12':1186,'2026-08-13':1175,'2026-08-14':1182,'2026-08-15':1522,'2026-08-16':1546,'2026-08-17':1371,'2026-08-18':1469,'2026-08-19':1319,'2026-08-20':1312,'2026-08-21':1506,'2026-08-22':1867,'2026-08-23':1851,'2026-08-24':1525,'2026-08-25':1582,'2026-08-26':1517,'2026-08-27':1582,'2026-08-28':1418,'2026-08-29':1574,'2026-08-30':1762,'2026-08-31':1260,'2026-09-01':1395,'2026-09-02':1367,'2026-09-03':1361,'2026-09-04':1278,'2026-09-05':1692,'2026-09-06':1800,'2026-09-07':658,'2026-09-08':767,'2026-09-09':956,'2026-09-10':774,'2026-09-11':649,'2026-09-12':843,'2026-09-13':911,'2026-09-14':1368,'2026-09-15':1405,'2026-09-16':1405},
     };
 
     // FBI DataMate 各门店 单均仓T (2026.9.7-9.16) 单位：分钟
@@ -1365,65 +1343,9 @@ createApp({
         '2026-09-07': 11.18, '2026-09-08': 37.18, '2026-09-09': 23.95,
         '2026-09-10': 20.18, '2026-09-11': 14.45, '2026-09-12': 19.07,
         '2026-09-13': 36.65, '2026-09-14': 9.99, '2026-09-15': 12.39,
-        '2026-09-16': 9.31, '2026-09-17': 12.31, '2026-09-18': 9.86, '2026-09-19': 28.86, '2026-09-20': 8.6, '2026-09-21': 4.92, '2026-09-22': 8.25, '2026-09-23': 4.85, '2026-09-24': 17.1, '2026-09-25': 49.58, '2026-09-26': 8.01, '2026-09-27': 8.23, '2026-09-28': 13.64, '2026-09-29': 8.76, '2026-09-30': 7.48, '2026-10-01': 9.45, '2026-10-02': 8.99, '2026-10-03': 9.15, '2026-10-04': 6.69, '2026-10-05': 9.91, '2026-10-06': 17.27, '2026-10-07': 16.59},
-    };
-
-    // ==================== 节假日预估配置 ====================
-    // 基于2026中秋(9/25-27)和端午(6/19-21)实际数据与正常周末的对比分析
-    // multipliers: 每天相对于"正常周末基准"的倍率（1.0 = 等于周末均值）
-    // distribution: 该假期使用哪种时段分布（'weekend' 或 'weekday'）
-    const holidayConfig = {
-      // 2026 中秋节: 9/25(周五) - 9/27(周日)
-      // 实际: 374/281/293 vs 正常周末均值~372 → 倍率 1.00/0.76/0.79
-      // 特征: 首日聚餐≈周末水平（囤货已在节前周六完成），次日出行低谷，末日小幅回升
-      midautumn_2026: {
-        name: '中秋节',
-        start: '2026-09-25', end: '2026-09-27',
-        distribution: 'holiday',
-        multipliers: [1.00, 0.76, 0.79],
-      },
-      // 2026 端午节: 6/19(周五) - 6/21(周日)
-      // 实际: 281/250/249 vs 正常周末均值~305 → 倍率 0.92/0.82/0.82（端午无拉动）
-      dragonboat_2026: {
-        name: '端午节',
-        start: '2026-06-19', end: '2026-06-21',
-        distribution: 'holiday',
-        multipliers: [0.92, 0.82, 0.82],
-      },
-      // 2026 国庆节: 10/1(周四) - 10/7(周三)
-      // 参考中秋模式：首日≈周末，中间出行低谷，尾段回升
-      nationalday_2026: {
-        name: '国庆节',
-        start: '2026-10-01', end: '2026-10-07',
-        distribution: 'holiday',
-        multipliers: [1.00, 0.76, 0.70, 0.68, 0.72, 0.82, 0.95],
+        '2026-09-16': 9.31
       },
     };
-
-    // ==================== 系统趋势预估（order_forecast_model.py 输出） ====================
-    // 非节假日的系统预估来源：近3周同星期基准 × 周趋势衰减 × 天气系数（降雨/温度）。
-    // 节假日（国庆/中秋等）不走这里，而由 holidayConfig 的"周末基准×假日倍率"覆盖。
-    // 该对象由钉钉推送脚本 update_model_forecast() 每日重算并整体替换。
-    const modelForecastHistory = {
-  '2026-09-29': 293,
-  '2026-09-30': 281,
-  '2026-10-07': 320,
-  '2026-10-08': 317
-};
-    const modelForecastData = {
-  '2026-09-28': 278,
-  '2026-10-01': 412,
-  '2026-10-02': 337,
-  '2026-10-03': 396,
-  '2026-10-04': 403,
-  '2026-10-05': 316,
-  '2026-10-06': 352,
-  '2026-10-08': 317,
-  '2026-10-09': 272,
-  '2026-10-10': 272,
-  '2026-10-11': 325,
-  '2026-10-12': 269
-};
 
     // Open-Meteo 天气预报 (西安 34.26,108.94) 更新于 2026-09-17
     const staticWeatherData = {
@@ -1437,6 +1359,20 @@ createApp({
         {date:'2026-09-23',desc:'微毛雨',temp:'18~24°C'},
       ],
     };
+
+    // 已保存的预估订单数据（由推送脚本自动嵌入，用户通过"保存预估"按钮下载JSON文件维护）
+    let savedForecastsData = {
+        "龙湖天街店": {
+          "2026-09-17": 383,
+          "2026-09-18": 345,
+          "2026-09-19": 376,
+          "2026-09-20": 412,
+          "2026-09-21": 347,
+          "2026-09-22": 352,
+          "2026-09-23": 418,
+          "2026-09-24": 399
+        }
+      };
 
     const brands = ref([
       {
@@ -1656,22 +1592,14 @@ createApp({
       if (!slots.length) return [];
       const storeName = selectedStore.value?.name;
       const brandName = brands.value[selectedBrandIdx.value]?.name;
-      // 按选中日期挑选工作日/周末/节假日分布；兼容旧版扁平数组（Excel导入产出）
+      // 按选中日期挑选工作日/周末分布；兼容旧版扁平数组（Excel导入产出）
       const distArr = (obj) => {
         if (Array.isArray(obj)) return obj;
         if (obj && typeof obj === 'object') {
           const d = selectedDate.value;
-          if (d) {
-            const holiday = getHolidayInfo(d);
-            if (holiday) {
-              // 节假日：优先用 holiday 分布，无则回退到 weekend
-              if (holiday.distribution === 'holiday' && obj.holiday) return obj.holiday;
-              return obj.weekend;
-            }
-            const dt = new Date(d + 'T00:00:00'); const day = dt.getDay();
-            return (day === 0 || day === 6) ? obj.weekend : obj.weekday;
-          }
-          return obj.weekday;
+          let isWeekend = false;
+          if (d) { const dt = new Date(d + 'T00:00:00'); const day = dt.getDay(); isWeekend = (day === 0 || day === 6); }
+          return isWeekend ? obj.weekend : obj.weekday;
         }
         return null;
       };
@@ -1833,7 +1761,7 @@ createApp({
       '当日天气': '当天的天气预报数据，来源：Open-Meteo API。包含天气状况、最高/最低温度、降水概率。',
       '上周同期实际': '7天前的实际订单数，来源：导入的拣货单Excel汇总。作为环比/同比的基准参考值。',
       '实际订单': '当天的实际订单数，来源：FBI DataMate。通常在次日更新，历史日期可查看，未来日期显示"—"。',
-      '系统预估': '系统自动生成的订单预估值。普通日期采用趋势模型：近3周同星期基准 × 周趋势衰减 × 天气系数（降雨/温度），不再直接取上周同期；节假日=正常周末基准 × 假日倍率（基于中秋/端午实际数据）。时段分布在节假日自动切换为周末模式。',
+      '系统预估': '系统自动生成的订单预估值，来源：FBI DataMate 算法模型。基于历史数据、天气、星期等因素综合计算。',
       '预估订单': '最终采用的预估值。优先级：用户手动输入 > 系统预估 > 上周同期实际。未填写时自动回退到系统预估。',
       '环比': '当日 vs 前一天实际订单的变化百分比。过去日期使用实际订单，当日及未来使用预估订单。公式：(当日订单 - 昨日实际) / 昨日实际 × 100%。无前日数据时显示"—"。',
       '同比': '与上周同期对比的变化百分比。过去日期：(实际订单 - 上周同期实际) / 上周同期实际 × 100%；当日及未来日期：(预估订单 - 上周同期实际) / 上周同期实际 × 100%。当分子=分母时显示"+0.0%"。',
@@ -1853,10 +1781,13 @@ createApp({
       const now = new Date();
       const timeStr = formatDateLocal(now) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
       
+      const currentStore = selectedStore.value?.name || '';
+      const currentBrand = brands.value[selectedBrandIdx.value]?.name || '';
+      
       const data = {
         saveDate: timeStr,
-        brand: brands.value[selectedBrandIdx.value]?.name || '',
-        store: selectedStore.value?.name || '',
+        brand: currentBrand,
+        store: currentStore,
         forecasts: dailyForecasts.value.map(d => ({ date: d.date, forecast: d.forecast || 0 })),
       };
       
@@ -1877,7 +1808,22 @@ createApp({
         savedForecastsMap = {};
         dailyForecasts.value.forEach(d => { savedForecastsMap[d.date] = d.forecast || 0; });
         
-        alert('预估已保存！');
+        // 同时下载 JSON 文件（供推送脚本读取并嵌入 HTML）
+        const forecastMap = {};
+        dailyForecasts.value.forEach(d => { forecastMap[d.date] = d.forecast || 0; });
+        const exportData = { [currentStore]: forecastMap };
+        const jsonStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `forecasts_${currentStore}_${formatDateLocal(now)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert('预估已保存！JSON文件已下载，请放到推送脚本同目录下。');
       } catch(e) { 
         console.error('保存失败:', e);
         alert('保存失败，请重试');
@@ -1895,29 +1841,40 @@ createApp({
 
     function loadSavedForecasts() {
       try {
+        const currentStore = selectedStore.value?.name || '';
+        const currentBrand = brands.value[selectedBrandIdx.value]?.name || '';
+        // 优先从 localStorage 加载（用户刚保存的）
         const raw = localStorage.getItem(storagePrefix.value + 'orderForecast_save');
         if (raw) {
           const data = JSON.parse(raw);
-          const currentStore = selectedStore.value?.name || '';
-          const currentBrand = brands.value[selectedBrandIdx.value]?.name || '';
           // 门店/品牌不匹配时跳过加载，避免跨门店数据污染
           if (data.store !== currentStore || data.brand !== currentBrand) {
             console.log('localStorage数据门店不匹配，跳过加载（已保存:', data.brand + '/' + data.store, '当前:', currentBrand + '/' + currentStore + '）');
-            return;
+          } else {
+            lastSaveTime.value = data.saveDate || '';
+            if (data.forecasts) {
+              data.forecasts.forEach(f => { savedForecastsMap[f.date] = f.forecast || 0; });
+            }
+            if (data.forecasts && dailyForecasts.value.length) {
+              const savedMap = {};
+              data.forecasts.forEach(f => { savedMap[f.date] = f.forecast; });
+              dailyForecasts.value.forEach(d => {
+                if (savedMap[d.date] !== undefined) d.forecast = savedMap[d.date];
+              });
+            }
+            return; // localStorage 有数据就直接返回
           }
-          lastSaveTime.value = data.saveDate || '';
-          // 保存所有已保存的预估值到全局 map
-          if (data.forecasts) {
-            data.forecasts.forEach(f => { savedForecastsMap[f.date] = f.forecast || 0; });
-          }
-          // 恢复到当前数组
-          if (data.forecasts && dailyForecasts.value.length) {
-            const savedMap = {};
-            data.forecasts.forEach(f => { savedMap[f.date] = f.forecast; });
-            dailyForecasts.value.forEach(d => {
-              if (savedMap[d.date] !== undefined) d.forecast = savedMap[d.date];
-            });
-          }
+        }
+        // localStorage 没有或门店不匹配时，从嵌入的 savedForecastsData 加载
+        if (currentStore && savedForecastsData[currentStore]) {
+          const embedded = savedForecastsData[currentStore];
+          dailyForecasts.value.forEach(d => {
+            if (embedded[d.date] !== undefined) {
+              d.forecast = embedded[d.date];
+              savedForecastsMap[d.date] = embedded[d.date];
+            }
+          });
+          console.log('从嵌入数据加载了', Object.keys(embedded).length, '条预估');
         }
         const logRaw = localStorage.getItem(storagePrefix.value + 'orderForecast_log');
         if (logRaw) changeLog.value = JSON.parse(logRaw);
@@ -2017,29 +1974,13 @@ createApp({
       while (cur <= end) {
         const dateStr = formatDateLocal(cur);
         const lwActual = getLastWeekActual(dateStr);
-        const holiday = getHolidayInfo(dateStr);
-        const modelVal = (typeof modelForecastData !== 'undefined' && modelForecastData[dateStr] !== undefined)
-          ? modelForecastData[dateStr] : null;
-        let systemForecast = lwActual;
-        if (holiday) {
-          // 节假日：用周末基准 × 假日倍率 替代"上周同期"
-          const baseline = getWeekendBaseline();
-          if (baseline > 0) {
-            systemForecast = Math.round(baseline * holiday.multiplier);
-          }
-        } else if (modelVal !== null) {
-          // 普通日期：采用趋势模型预估（近3周同星期基准×周衰减×天气），不再直接取上周同期
-          systemForecast = modelVal;
-        }
-        const useAsDefault = !!holiday || (modelVal !== null);
         forecasts.push({
           date: dateStr,
           dayOfWeek: getDayOfWeek(dateStr),
           lastWeekActual: lwActual,
-          systemForecast: systemForecast,
+          systemForecast: lwActual,
           actualOrders: excelDailyTotals.value[dateStr] ?? null,
-          forecast: existing[dateStr] !== undefined ? existing[dateStr] : (useAsDefault ? systemForecast : 0),
-          holiday: holiday ? holiday.name : null,
+          forecast: existing[dateStr] !== undefined ? existing[dateStr] : 0,
         });
         cur.setDate(cur.getDate() + 1);
       }
@@ -2051,46 +1992,6 @@ createApp({
       d.setDate(d.getDate() - 7);
       const lwStr = formatDateLocal(d);
       return excelDailyTotals.value[lwStr] ?? null;
-    }
-
-    // ==================== 节假日辅助函数 ====================
-    function getHolidayInfo(dateStr) {
-      for (const key of Object.keys(holidayConfig)) {
-        const h = holidayConfig[key];
-        if (dateStr >= h.start && dateStr <= h.end) {
-          const dayIndex = Math.floor((new Date(dateStr) - new Date(h.start)) / 86400000);
-          const multiplier = h.multipliers[dayIndex] || h.multipliers[h.multipliers.length - 1];
-          return { name: h.name + '第' + (dayIndex + 1) + '天', multiplier, distribution: h.distribution };
-        }
-      }
-      return null;
-    }
-
-    function getWeekendBaseline() {
-      // 取最近一个正常周末均值（排除节假日、调休上班日、节前3天内的周末）
-      const data = excelDailyTotals.value;
-      const dates = Object.keys(data).sort().reverse();
-      const makeupWorkdays = ['2026-09-20','2026-10-10','2026-04-26','2026-02-14','2026-02-28'];
-      // 收集所有节假日起始日，用于排除节前囤货日
-      const holidayStarts = Object.values(holidayConfig).map(h => new Date(h.start + 'T00:00:00').getTime());
-      let weekendSum = 0, weekendCount = 0;
-      for (const ds of dates) {
-        const dt = new Date(ds + 'T00:00:00');
-        const dow = dt.getDay();
-        if (dow !== 0 && dow !== 6) continue;
-        if (getHolidayInfo(ds)) continue;
-        if (makeupWorkdays.includes(ds)) continue;
-        // 排除节前7天内的周末（节前囤货效应）
-        const isPreHoliday = holidayStarts.some(hs => {
-          const diff = hs - dt.getTime();
-          return diff > 0 && diff <= 7 * 86400000;
-        });
-        if (isPreHoliday) continue;
-        weekendSum += data[ds];
-        weekendCount++;
-        if (weekendCount >= 2) break;
-      }
-      return weekendCount > 0 ? Math.round(weekendSum / weekendCount) : 0;
     }
 
     function updateLastWeekActuals() {
