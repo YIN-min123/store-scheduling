@@ -569,8 +569,12 @@ def fetch_hourly_weather():
 
 
 def extract_store_actuals(content):
-    """从HTML的storeDailyData中提取龙湖天街店实际订单"""
-    m = re.search(r"'龙湖天街店'\s*:\s*\{([^}]+)\}", content)
+    """从HTML的storeDailyData中提取龙湖天街店实际订单
+    注意：必须锚定 storeDailyData 变量，否则会误命中排班的 weekday/ratio 结构。"""
+    m = re.search(
+        r"let\s+storeDailyData\s*=\s*\{.*?'龙湖天街店'\s*:\s*\{([^}]*)\}",
+        content, re.DOTALL
+    )
     if not m:
         return {}
     entries = re.findall(r"'(\d{4}-\d{2}-\d{2})'\s*:\s*(\d+)", m.group(1))
