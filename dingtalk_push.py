@@ -38,8 +38,11 @@ WEATHER_LON = 108.94
 
 STORES = ['龙湖天街店']
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_DIR = r"C:\Users\TBSG\.qoderwork\workspace\mu3wgi8swufexcje"
+MODEL_DIR = SCRIPT_DIR  # 预估模型与轻量引擎随推送脚本同目录（持久化的repo副本），保证无人值守任务自包含
 ACCUMULATED_DATA_PATH = os.path.join(SCRIPT_DIR, 'daily_actuals.json')
+
+# 试运行开关：为 True 时跳过 GitHub Pages 推送与钉钉发送（仅本地校验）
+DRY_RUN = False
 
 
 # ==================== 数据累积器 ====================
@@ -607,8 +610,11 @@ def _build_js_dict(d):
     return "{\n" + ",\n".join(items) + "\n}"
 
 
-def update_model_forecast(content):
-    """运行预估模型并更新HTML中的modelForecastData（当日锁定，未来动态校准）"""
+def update_model_forecast(content, anchor_tomorrow=False, horizon=16, engine='full'):
+    """运行预估模型并更新HTML中的modelForecastData（当日锁定，未来动态校准）
+    anchor_tomorrow=True 时，预估窗口锚定为 次日..次日+horizon-1。
+    engine='lite' 使用日粒度轻量引擎（不加载订单级Excel，适合无人值守每周刷新）；
+    engine='full' 使用订单级模型（拣货单Excel，槽位/履约更细但慢）。"""
     today = datetime.now().strftime('%Y-%m-%d')
 
     # 1. 读取当前modelForecastData（今天还未锁定的值）
@@ -647,15 +653,31 @@ def update_model_forecast(content):
             json.dump(actuals, f, ensure_ascii=False, indent=2)
 
     # 6. 运行预估模型
-    model_script = os.path.join(MODEL_DIR, 'order_forecast_model.py')
+    if engine == 'lite':
+        model_script = os.path.join(MODEL_DIR, 'daily_forecast_lite.py')
+        subprocess_timeout = 120
+    else:
+        model_script = os.path.join(MODEL_DIR, 'order_forecast_model.py')
+        subprocess_timeout = 900
     forecast_file = os.path.join(MODEL_DIR, 'forecast_result.json')
+    # 锚定次日时，向模型传入 FC_START_DATE / FC_DAYS 环境变量
+    model_env = dict(os.environ)
+    model_env['PYTHONIOENCODING'] = 'utf-8'
+    if engine == 'lite':
+        model_env['ACTUALS_JSON'] = os.path.join(MODEL_DIR, 'latest_actuals.json')
+    if anchor_tomorrow:
+        tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+        model_env['FC_START_DATE'] = tomorrow
+        model_env['FC_DAYS'] = str(horizon)
+        end_day = (datetime.now() + timedelta(days=horizon)).strftime('%Y-%m-%d')
+        print(f"[INFO] 预估锚定次日: {tomorrow} ~ {end_day}（{horizon}天，engine={engine}）")
     if os.path.exists(model_script):
         print("[INFO] 运行预估模型...")
         try:
             result = subprocess.run(
                 [sys.executable, '-X', 'utf8', model_script],
-                capture_output=True, text=True, timeout=180,
-                cwd=MODEL_DIR
+                capture_output=True, text=True, timeout=subprocess_timeout,
+                cwd=MODEL_DIR, env=model_env
             )
             if result.returncode != 0:
                 print(f"[WARN] 模型运行异常:\n{result.stderr[-500:]}")
@@ -679,7 +701,7 @@ def update_model_forecast(content):
     new_mf = {}
     for fc in forecast_data.get('forecast', []):
         d = fc['date']
-        v = round(fc['forecast'])
+        v = round(fc.get('forecast', fc.get('forecast_total', 0)))
         if d == today and d in history:
             new_mf[d] = history[d]  # 锁定值
         elif d > today:
@@ -813,8 +835,168 @@ def sign_and_send(message):
         return {"errcode": -1, "errmsg": str(e)}
 
 
+def extract_model_forecast(content):
+    """从HTML解析 modelForecastData → {date: orders}"""
+    m = re.search(r"const\s+modelForecastData\s*=\s*\{([^}]*)\}", content)
+    if not m:
+        return {}
+    entries = re.findall(r"'(\d{4}-\d{2}-\d{2})'\s*:\s*(\d+)", m.group(1))
+    return {d: int(v) for d, v in entries}
+
+
+def format_weekly_forecast_message(content, gaps=None):
+    """每周五系统预估刷新摘要（锚定次日..次日+15）"""
+    weekday_names = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+    run_date = datetime.now()
+    tomorrow = run_date + timedelta(days=1)
+    end_day = run_date + timedelta(days=16)
+    mf = extract_model_forecast(content)
+
+    lines = []
+    lines.append(f"## 成山农场·系统预估周刷新 {run_date.strftime('%Y-%m-%d')}")
+    lines.append("")
+    lines.append(f"**预估区间**: {tomorrow.strftime('%m/%d')} ~ {end_day.strftime('%m/%d')}（次日+15，共16天）")
+    lines.append("")
+
+    future = {d: v for d, v in mf.items()
+              if tomorrow.strftime('%Y-%m-%d') <= d <= end_day.strftime('%Y-%m-%d')}
+    if future:
+        avg = round(sum(future.values()) / len(future))
+        peak_date = max(future, key=future.get)
+        peak = future[peak_date]
+        peak_dt = datetime.strptime(peak_date, '%Y-%m-%d')
+        lines.append(f"**日均**: {avg}单 ｜ **峰值**: {peak_date}({weekday_names[peak_dt.weekday()]}) {peak}单")
+        lines.append("")
+        lines.append("**逐日预估**:")
+        # 每行2天，紧凑展示
+        sorted_days = sorted(future.items())
+        for i in range(0, len(sorted_days), 2):
+            pair = sorted_days[i:i+2]
+            cells = []
+            for d, v in pair:
+                wd = weekday_names[datetime.strptime(d, '%Y-%m-%d').weekday()]
+                flag = " 🔥" if v >= avg * 1.15 else ""
+                cells.append(f"{d[5:]} {wd} {v}单{flag}")
+            lines.append(f"- " + " ｜ ".join(cells))
+        lines.append("")
+    else:
+        lines.append("⚠️ 未获取到次日预估数据，请检查模型运行。")
+        lines.append("")
+
+    if gaps:
+        lines.append("**数据断层提醒**（需补齐实际订单后预估更准）:")
+        for g in gaps:
+            lines.append(f"- {g['after']} → {g['before']} 缺 {', '.join(g['missing'])}")
+        lines.append("")
+
+    lines.append(f"[点击打开订单预估·排班工具]({PAGES_URL})")
+    lines.append("")
+    lines.append("> 数据来源: FBI看板1796001 过往实际订单 + Open-Meteo天气 | 每周五15:00自动刷新")
+
+    return "\n".join(lines)
+
+
+def run_weekly_refresh():
+    """每周五下午：基于过往实际订单，锚定次日刷新16天系统预估，同步更新预估+排班工具并推送。"""
+    today = datetime.now()
+    run_date_str = today.strftime('%Y-%m-%d')
+    print("=" * 60)
+    print(f"每周系统预估刷新  {run_date_str}")
+    print("=" * 60)
+
+    # Step 0: 累积数据（FBI补齐的实际订单应已由前置步骤写入 daily_actuals.json）
+    accumulated = load_accumulated_data()
+    if accumulated:
+        acc_count = sum(
+            len(v.get('storeDailyData', {})) + len(v.get('warehouseTData', {}))
+            for k, v in accumulated.items() if k != 'brandDailyData'
+        )
+        print(f"[INFO] 累积实际订单: {acc_count} 条待合并")
+
+    # Step 1: 读取HTML
+    with open(HTML_PATH, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Step 2: 合并累积数据（补齐之前未推送/新回填的日期）
+    if accumulated:
+        content = merge_accumulated_into_html(content, accumulated)
+        print("[OK] 累积实际订单已合并到HTML")
+
+    # Step 3: 刷新天气
+    print("[INFO] 获取天气预报...")
+    weather = fetch_weather()
+    if weather:
+        print(f"[OK] 获取到 {len(weather)} 天天气")
+        content = update_html_weather(content, weather)
+
+    # Step 4: 更新常规预估（天气/节假日校准）
+    content = update_html_forecasts(content)
+
+    # Step 5: 运行模型 → 锚定次日16天系统预估（轻量日粒度引擎）
+    print("[INFO] 运行预估模型（锚定次日·轻量引擎）...")
+    content = update_model_forecast(content, anchor_tomorrow=True, horizon=16, engine='lite')
+
+    # Step 6: 回存累积数据
+    all_data = extract_all_data_from_html(content)
+    if not DRY_RUN:
+        save_accumulated_data(all_data)
+
+    # Step 7: 检测断层
+    gaps = detect_date_gaps(content)
+    if gaps:
+        for g in gaps:
+            print(f"  ⚠️ 断层 {g['after']} → {g['before']} 缺 {', '.join(g['missing'])}")
+    else:
+        print("[OK] 日期连续性检查通过")
+
+    # Step 8: 写回HTML
+    if DRY_RUN:
+        preview_path = HTML_PATH.replace('.html', '.weekly-preview.html')
+        with open(preview_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"[DRY-RUN] 已写入预览HTML: {preview_path}（未改动正式文件、未推送）")
+    else:
+        with open(HTML_PATH, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print("[OK] HTML已更新（预估+排班）")
+
+    # Step 9: 推送GitHub Pages
+    if DRY_RUN:
+        print("[DRY-RUN] 跳过 GitHub Pages 推送")
+    else:
+        print("[INFO] 推送到GitHub Pages...")
+        if not push_to_github_pages(run_date_str):
+            print("[ERROR] GitHub Pages推送失败，终止")
+            sys.exit(1)
+
+    # Step 10: 钉钉推送周刷新摘要
+    message = format_weekly_forecast_message(content, gaps)
+    if DRY_RUN:
+        print("[DRY-RUN] 跳过钉钉发送，以下为将要推送的内容:\n")
+        print("--- 推送内容 ---\n" + message + "\n--- 结束 ---\n")
+        print("[DRY-RUN] 每周预估刷新（试运行）完成!")
+        return
+    print("[INFO] 发送钉钉周刷新摘要...")
+    print("\n--- 推送内容 ---\n" + message + "\n--- 结束 ---\n")
+    result = sign_and_send(message)
+    print(f"[INFO] 钉钉返回: {result}")
+    if result.get("errcode") != 0:
+        print(f"[FAIL] 钉钉推送失败: {result.get('errmsg', 'unknown error')}")
+        sys.exit(1)
+    print("[OK] 每周预估刷新完成!")
+
+
 # ==================== 主流程 ====================
 def main():
+    # 每周刷新模式：锚定次日重跑16天系统预估 + 推送
+    if any(a in ('--refresh-weekly', '--weekly') for a in sys.argv):
+        global DRY_RUN
+        if '--dry-run' in sys.argv:
+            DRY_RUN = True
+            print("[DRY-RUN] 试运行模式：不推送GitHub、不发钉钉")
+        run_weekly_refresh()
+        return
+
     # 参数: target_date orders warehouse_t [brand_orders]
     if len(sys.argv) >= 4:
         target_date = sys.argv[1]
