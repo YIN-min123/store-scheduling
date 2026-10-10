@@ -1859,11 +1859,28 @@ createApp({
       const now = new Date();
       const timeStr = formatDateLocal(now) + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
       
+      // 合并式保存：以历史存档 + 内存快照为底，用当前日期窗口内的手填值覆盖，
+      // 保留不在当前窗口中的已保存日期，避免调窄范围再保存时把其它日期悄悄删掉。
+      const merged = {};
+      try {
+        const prevRaw = localStorage.getItem(storagePrefix.value + 'orderForecast_save');
+        if (prevRaw) {
+          const prev = JSON.parse(prevRaw);
+          const curStore = selectedStore.value?.name || '';
+          const curBrand = brands.value[selectedBrandIdx.value]?.name || '';
+          if ((prev.store || '') === curStore && (prev.brand || '') === curBrand && Array.isArray(prev.forecasts)) {
+            prev.forecasts.forEach(f => { merged[f.date] = f.forecast || 0; });
+          }
+        }
+      } catch(e) { /* 旧存档解析失败时忽略，按当前窗口保存 */ }
+      Object.keys(savedForecastsMap).forEach(dt => { if (merged[dt] === undefined) merged[dt] = savedForecastsMap[dt]; });
+      dailyForecasts.value.forEach(d => { merged[d.date] = d.forecast || 0; });
+
       const data = {
         saveDate: timeStr,
         brand: brands.value[selectedBrandIdx.value]?.name || '',
         store: selectedStore.value?.name || '',
-        forecasts: dailyForecasts.value.map(d => ({ date: d.date, forecast: d.forecast || 0 })),
+        forecasts: Object.keys(merged).sort().map(dt => ({ date: dt, forecast: merged[dt] })),
       };
       
       try {
@@ -1879,9 +1896,8 @@ createApp({
           }
         });
         
-        // 更新快照
-        savedForecastsMap = {};
-        dailyForecasts.value.forEach(d => { savedForecastsMap[d.date] = d.forecast || 0; });
+        // 更新快照：保存全量合并结果，而非只保留当前窗口
+        savedForecastsMap = merged;
         
         alert('预估已保存！');
       } catch(e) { 
@@ -2007,15 +2023,12 @@ createApp({
       const end = new Date(forecastEndDate.value);
       if (start > end) return;
       
-      // 从当前数组保留旧值
+      // 以保存快照（全量已保存日期）为底，再用当前窗口中手填的非0值覆盖，
+      // 确保调宽/调窄日期范围后已保存的日期都能回填，不会被显示中的 0 冲掉。
       const existing = {};
-      dailyForecasts.value.forEach(d => { existing[d.date] = d.forecast || 0; });
-      
-      // 从全局保存快照恢复所有已保存的预估值（确保切换日期范围后数据不丢失）
-      Object.keys(savedForecastsMap).forEach(date => {
-        if (existing[date] === undefined) {
-          existing[date] = savedForecastsMap[date];
-        }
+      Object.keys(savedForecastsMap).forEach(date => { existing[date] = savedForecastsMap[date]; });
+      dailyForecasts.value.forEach(d => {
+        if (d.forecast) existing[d.date] = d.forecast;
       });
       
       const forecasts = [];
@@ -2976,6 +2989,86 @@ createApp({
         console.log('[排班调试] 收档时段', lbl, '排班人员:', who);
       }
 
+      // ==================== 开档/收档兜底校验与告警 ====================
+      // 主逻辑尽力覆盖后，这里做最终校验：确保最早/最晚有需求时段各有1名员工池人员在岗，
+      // 且开档与收档尽量不是同一人；无法达成时给出明确告警，而不是静默失败。
+      const edgeWarnings = [];
+      const edgeCoveredNames = (idx) => staffList.value.filter(s => !s.isTemp && s.shifts[timeSlots.value[idx].label]).map(s => s.name);
+
+      // —— 开档最终校验 ——
+      if (earliestNeeded >= 0) {
+        const openLbl = timeSlots.value[earliestNeeded].label;
+        if (edgeCoveredNames(earliestNeeded).length === 0) {
+          const cands = staffList.value.filter(s => !s.isTemp)
+            .map(s => ({ s, emp: sortedPool.find(e => e.name === s.name) }))
+            .filter(o => o.emp && o.emp.availableSlots[openLbl])
+            .sort((a, b) => timeToMin(a.emp.timeStart || '00:00') - timeToMin(b.emp.timeStart || '00:00'));
+          for (const o of cands) { if (extendStaffToSlot(o.s, o.emp, earliestNeeded, 'left')) break; }
+          if (edgeCoveredNames(earliestNeeded).length === 0) {
+            const nw = sortedPool.filter(emp => emp.availableSlots[openLbl])
+              .filter(emp => !staffList.value.some(s => !s.isTemp && s.name === emp.name))
+              .sort((a, b) => timeToMin(a.timeStart || '00:00') - timeToMin(b.timeStart || '00:00'));
+            for (const emp of nw) { if (createMinShiftForSlot(emp, earliestNeeded)) break; }
+          }
+          if (edgeCoveredNames(earliestNeeded).length === 0) {
+            for (const emp of sortedPool) { if (emp.availableSlots[openLbl]) { createMinShiftForSlot(emp, earliestNeeded); break; } }
+          }
+          if (edgeCoveredNames(earliestNeeded).length === 0) {
+            edgeWarnings.push(`开档 ${timeSlots.value[earliestNeeded].start} 无人在岗：员工池中没有人该时段可出勤。请在员工池添加早班员工，或把某位员工的出勤起始时间提前到 ${timeSlots.value[earliestNeeded].start}。`);
+          }
+        }
+      }
+
+      // —— 收档最终校验（尽量与开档不同人） ——
+      if (latestNeeded >= 0) {
+        const closeLbl = timeSlots.value[latestNeeded].label;
+        const openNames = earliestNeeded >= 0 ? edgeCoveredNames(earliestNeeded) : [];
+        // 收档完全无人 → 补人（优先出勤结束最晚的员工）
+        if (edgeCoveredNames(latestNeeded).length === 0) {
+          const cands = staffList.value.filter(s => !s.isTemp)
+            .map(s => ({ s, emp: sortedPool.find(e => e.name === s.name) }))
+            .filter(o => o.emp && o.emp.availableSlots[closeLbl])
+            .sort((a, b) => timeToMin(b.emp.timeEnd || '23:59') - timeToMin(a.emp.timeEnd || '23:59'));
+          for (const o of cands) { if (extendStaffToSlot(o.s, o.emp, latestNeeded, 'right')) break; }
+          if (edgeCoveredNames(latestNeeded).length === 0) {
+            const nw = sortedPool.filter(emp => emp.availableSlots[closeLbl])
+              .filter(emp => !staffList.value.some(s => !s.isTemp && s.name === emp.name))
+              .sort((a, b) => timeToMin(b.timeEnd || '23:59') - timeToMin(a.timeEnd || '23:59'));
+            for (const emp of nw) { if (createMinShiftForSlot(emp, latestNeeded)) break; }
+          }
+          if (edgeCoveredNames(latestNeeded).length === 0) {
+            for (const emp of sortedPool) { if (emp.availableSlots[closeLbl]) { createMinShiftForSlot(emp, latestNeeded); break; } }
+          }
+          if (edgeCoveredNames(latestNeeded).length === 0) {
+            edgeWarnings.push(`收档 ${timeSlots.value[latestNeeded].end} 无人在岗：员工池中没有人该时段可出勤。请在员工池添加晚班员工，或把某位员工的出勤结束时间延后到 ${timeSlots.value[latestNeeded].end}。`);
+          }
+        }
+        // 收档只有开档那同一人 → 尝试补第二名非开档员工，成功前绝不清除原覆盖（避免收档变空）
+        const closeNames = edgeCoveredNames(latestNeeded);
+        const hasNonOpenerCloser = closeNames.some(nm => !openNames.includes(nm));
+        if (closeNames.length > 0 && !hasNonOpenerCloser) {
+          const cands = staffList.value.filter(s => !s.isTemp && !openNames.includes(s.name))
+            .map(s => ({ s, emp: sortedPool.find(e => e.name === s.name) }))
+            .filter(o => o.emp && o.emp.availableSlots[closeLbl])
+            .sort((a, b) => timeToMin(b.emp.timeEnd || '23:59') - timeToMin(a.emp.timeEnd || '23:59'));
+          let added = false;
+          for (const o of cands) { if (extendStaffToSlot(o.s, o.emp, latestNeeded, 'right')) { added = true; break; } }
+          if (!added) {
+            const nw = sortedPool.filter(emp => !openNames.includes(emp.name) && emp.availableSlots[closeLbl])
+              .filter(emp => !staffList.value.some(s => !s.isTemp && s.name === emp.name))
+              .sort((a, b) => timeToMin(b.timeEnd || '23:59') - timeToMin(a.timeEnd || '23:59'));
+            for (const emp of nw) { if (createMinShiftForSlot(emp, latestNeeded)) { added = true; break; } }
+          }
+          if (added) {
+            const opener = staffList.value.find(s => !s.isTemp && openNames.includes(s.name) && s.shifts[closeLbl]);
+            if (opener) opener.shifts[closeLbl] = false;
+          } else {
+            edgeWarnings.push(`开档与收档只能由同一人(${closeNames.join('/')})覆盖：没有第二名员工能在收档时段 ${timeSlots.value[latestNeeded].end} 出勤。请再安排一名晚班员工。`);
+          }
+        }
+      }
+      console.log('[排班调试] 兜底后 开档在岗:', earliestNeeded >= 0 ? edgeCoveredNames(earliestNeeded) : [], '| 收档在岗:', latestNeeded >= 0 ? edgeCoveredNames(latestNeeded) : []);
+
       // ==================== 规则2：排班时间超出出勤时间提醒校准 ====================
       const overtimeWarnings = [];
       staffList.value.forEach(s => {
@@ -3001,6 +3094,9 @@ createApp({
       let alertMsg = '智能排班完成！\n\n排班规则：\n• 连续班次，不拆分\n• 高效率员工优先排早班\n• 超6小时自动安排1小时吃饭（12-16点间，上班2小时后，上班早的员工优先吃饭）\n• 高效率→低效率，稳定小时工→短期小时工\n• 每人最长8小时（不含吃饭）\n• 开档/收档至少有1名员工池人员在场（不能同一人）';
       if (overtimeWarnings.length > 0) {
         alertMsg += '\n\n⚠️ 排班时间超出登记出勤时间，请校准：\n' + overtimeWarnings.join('\n');
+      }
+      if (edgeWarnings.length > 0) {
+        alertMsg += '\n\n⚠️ 开档/收档未完全满足（最后一个规则）：\n' + edgeWarnings.join('\n');
       }
       alert(alertMsg);
     }
