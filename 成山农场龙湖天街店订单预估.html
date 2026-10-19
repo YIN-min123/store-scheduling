@@ -11,7 +11,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
@@ -1321,7 +1321,7 @@ createApp({
     // 成山农场门店级每日订单汇总（2026.8.8-9.16）
     // FBI看板1796001 门店级每日订单 (2026.8.8-9.16)
     let storeDailyData = {
-      '龙湖天街店': {'2026-08-08': 377,'2026-08-09': 380,'2026-08-10': 354,'2026-08-11': 251,'2026-08-12': 267,'2026-08-13': 315,'2026-08-14': 294,'2026-08-15': 389,'2026-08-16': 352,'2026-08-17': 283,'2026-08-18': 347,'2026-08-19': 281,'2026-08-20': 317,'2026-08-21': 343,'2026-08-22': 465,'2026-08-23': 417,'2026-08-24': 348,'2026-08-25': 370,'2026-08-26': 378,'2026-08-27': 406,'2026-08-28': 398,'2026-08-29': 393,'2026-08-30': 414,'2026-08-31': 347,'2026-09-01': 378,'2026-09-02': 333,'2026-09-03': 335,'2026-09-04': 303,'2026-09-05': 392,'2026-09-06': 412,'2026-09-07': 324,'2026-09-08': 365,'2026-09-09': 414,'2026-09-10': 365,'2026-09-11': 329,'2026-09-12': 376,'2026-09-13': 368,'2026-09-14': 311,'2026-09-15': 306,'2026-09-16': 306, '2026-09-17': 253, '2026-09-18': 265, '2026-09-19': 370, '2026-09-20': 356, '2026-09-21': 233, '2026-09-22': 247, '2026-09-23': 254, '2026-09-24': 317, '2026-09-25': 374, '2026-09-26': 281, '2026-09-27': 293, '2026-09-28': 276, '2026-09-29': 245, '2026-09-30': 247, '2026-10-01': 260, '2026-10-02': 252, '2026-10-03': 243, '2026-10-04': 249, '2026-10-05': 233, '2026-10-06': 264, '2026-10-07': 310, '2026-10-08': 274, '2026-10-09': 281, '2026-10-11': 391, '2026-10-10': 300, '2026-10-12': 267, '2026-10-13': 277, '2026-10-14': 267, '2026-10-15': 233},
+      '龙湖天街店': {'2026-08-08': 377,'2026-08-09': 380,'2026-08-10': 354,'2026-08-11': 251,'2026-08-12': 267,'2026-08-13': 315,'2026-08-14': 294,'2026-08-15': 389,'2026-08-16': 352,'2026-08-17': 283,'2026-08-18': 347,'2026-08-19': 281,'2026-08-20': 317,'2026-08-21': 343,'2026-08-22': 465,'2026-08-23': 417,'2026-08-24': 348,'2026-08-25': 370,'2026-08-26': 378,'2026-08-27': 406,'2026-08-28': 398,'2026-08-29': 393,'2026-08-30': 414,'2026-08-31': 347,'2026-09-01': 378,'2026-09-02': 333,'2026-09-03': 335,'2026-09-04': 303,'2026-09-05': 392,'2026-09-06': 412,'2026-09-07': 324,'2026-09-08': 365,'2026-09-09': 414,'2026-09-10': 365,'2026-09-11': 329,'2026-09-12': 376,'2026-09-13': 368,'2026-09-14': 311,'2026-09-15': 306,'2026-09-16': 306, '2026-09-17': 253, '2026-09-18': 265, '2026-09-19': 370, '2026-09-20': 356, '2026-09-21': 233, '2026-09-22': 247, '2026-09-23': 254, '2026-09-24': 317, '2026-09-25': 374, '2026-09-26': 281, '2026-09-27': 293, '2026-09-28': 276, '2026-09-29': 245, '2026-09-30': 247, '2026-10-01': 260, '2026-10-02': 252, '2026-10-03': 243, '2026-10-04': 249, '2026-10-05': 233, '2026-10-06': 264, '2026-10-07': 310, '2026-10-08': 274, '2026-10-09': 281, '2026-10-11': 391, '2026-10-10': 300, '2026-10-12': 267, '2026-10-13': 277, '2026-10-14': 267, '2026-10-15': 233, '2026-10-16': 257, '2026-10-17': 419, '2026-10-18': 260},
     };
     // 成山农场品牌级汇总分布（全门店合计）
     let brandDistData = {
@@ -1365,7 +1365,7 @@ createApp({
         '2026-09-07': 11.18, '2026-09-08': 37.18, '2026-09-09': 23.95,
         '2026-09-10': 20.18, '2026-09-11': 14.45, '2026-09-12': 19.07,
         '2026-09-13': 36.65, '2026-09-14': 9.99, '2026-09-15': 12.39,
-        '2026-09-16': 9.31, '2026-09-17': 12.31, '2026-09-18': 9.86, '2026-09-19': 28.86, '2026-09-20': 8.6, '2026-09-21': 4.92, '2026-09-22': 8.25, '2026-09-23': 4.85, '2026-09-24': 17.1, '2026-09-25': 49.58, '2026-09-26': 8.01, '2026-09-27': 8.23, '2026-09-28': 13.64, '2026-09-29': 8.76, '2026-09-30': 7.48, '2026-10-01': 9.45, '2026-10-02': 8.99, '2026-10-03': 9.15, '2026-10-04': 6.69, '2026-10-05': 9.91, '2026-10-06': 17.27, '2026-10-07': 16.59, '2026-10-08': 10.11, '2026-10-09': 6.67, '2026-10-11': 34.33, '2026-10-10': 9.34, '2026-10-12': 13.98, '2026-10-13': 10.55, '2026-10-14': 8.6, '2026-10-15': 6.68},
+        '2026-09-16': 9.31, '2026-09-17': 12.31, '2026-09-18': 9.86, '2026-09-19': 28.86, '2026-09-20': 8.6, '2026-09-21': 4.92, '2026-09-22': 8.25, '2026-09-23': 4.85, '2026-09-24': 17.1, '2026-09-25': 49.58, '2026-09-26': 8.01, '2026-09-27': 8.23, '2026-09-28': 13.64, '2026-09-29': 8.76, '2026-09-30': 7.48, '2026-10-01': 9.45, '2026-10-02': 8.99, '2026-10-03': 9.15, '2026-10-04': 6.69, '2026-10-05': 9.91, '2026-10-06': 17.27, '2026-10-07': 16.59, '2026-10-08': 10.11, '2026-10-09': 6.67, '2026-10-11': 34.33, '2026-10-10': 9.34, '2026-10-12': 13.98, '2026-10-13': 10.55, '2026-10-14': 8.6, '2026-10-15': 6.68, '2026-10-16': 9.26, '2026-10-17': 42.72, '2026-10-18': 45.43},
     };
 
     // ==================== 节假日预估配置 ====================
@@ -1411,25 +1411,26 @@ createApp({
   '2026-10-08': 317,
   '2026-10-09': 272,
   '2026-10-10': 272,
-  '2026-10-13': 255
+  '2026-10-13': 255,
+  '2026-10-19': 259
 };
     const modelForecastData = {
-  '2026-10-17': 341,
-  '2026-10-18': 312,
-  '2026-10-19': 259,
-  '2026-10-20': 267,
-  '2026-10-21': 290,
-  '2026-10-22': 283,
-  '2026-10-23': 291,
-  '2026-10-24': 277,
-  '2026-10-25': 399,
-  '2026-10-26': 256,
-  '2026-10-27': 265,
-  '2026-10-28': 274,
-  '2026-10-29': 262,
-  '2026-10-30': 327,
-  '2026-10-31': 367,
-  '2026-11-01': 309
+  '2026-10-20': 280,
+  '2026-10-21': 276,
+  '2026-10-22': 251,
+  '2026-10-23': 263,
+  '2026-10-24': 348,
+  '2026-10-25': 362,
+  '2026-10-26': 258,
+  '2026-10-27': 303,
+  '2026-10-28': 277,
+  '2026-10-29': 252,
+  '2026-10-30': 265,
+  '2026-10-31': 350,
+  '2026-11-01': 299,
+  '2026-11-02': 260,
+  '2026-11-03': 270,
+  '2026-11-04': 279
 };
 
     // Open-Meteo 天气预报 (西安 34.26,108.94) 更新于 2026-09-17
@@ -3269,12 +3270,13 @@ createApp({
       const rows = [];
       const brand = sch.brand || '';
       const store = sch.store || '';
+      const slots = sch.slots || [];
       rows.push([brand + ' ' + store + ' 排班表']);
       rows.push(['日期: ' + sch.date, '时效: ' + sch.efficiency + '单/人时', '总员工: ' + sch.staffCount + '人']);
       rows.push([]);
-      // Header: 员工 + 类型 + 效率 + 时段
+      // Header: 员工 + 类型 + 效率 + 时段 + 工时
       const header = ['员工', '类型', '效率'];
-      (sch.slots || []).forEach(s => header.push(s));
+      slots.forEach(s => header.push(s));
       header.push('工时(h)');
       rows.push(header);
       // Data rows
@@ -3284,23 +3286,27 @@ createApp({
         const eff = s.efficiency ? (effLabels[s.efficiency] || '-') : '-';
         const row = [s.name, type, eff];
         let count = 0;
-        (sch.slots || []).forEach(slot => {
-          if (s.shifts[slot]) { row.push('✓'); count++; }
+        slots.forEach(slot => {
+          if (s.shifts && s.shifts[slot]) { row.push('✓'); count++; }
           else row.push('');
         });
         row.push((count * 0.5).toFixed(1));
         rows.push(row);
       });
       rows.push([]);
-      // 需求/排班/差异 汇总行
-      const demandRow = ['需求人数'];
-      const scheduledRow = ['排班人数'];
-      const gapRow = ['差异'];
+      // 汇总行：标签占前3列（员工/类型/效率），数值从时段列(索引3)开始，末尾工时列留空
+      const forecastRow = ['预估订单量', '', ''];
+      const demandRow = ['需求人数', '', ''];
+      const scheduledRow = ['排班人数', '', ''];
+      const gapRow = ['差异', '', ''];
       (sch.summary || []).forEach(s => {
-        demandRow.push(s.demand);
-        scheduledRow.push(s.scheduled);
+        forecastRow.push(s.forecast != null ? s.forecast : 0);
+        demandRow.push(s.demand != null ? s.demand : 0);
+        scheduledRow.push(s.scheduled != null ? s.scheduled : 0);
         gapRow.push(s.gap > 0 ? '+' + s.gap : s.gap);
       });
+      forecastRow.push(''); demandRow.push(''); scheduledRow.push(''); gapRow.push('');
+      rows.push(forecastRow);
       rows.push(demandRow);
       rows.push(scheduledRow);
       rows.push(gapRow);
@@ -3309,11 +3315,153 @@ createApp({
 
     function writeScheduleExcel(sch) {
       const rows = buildScheduleRows(sch);
+      const slots = sch.slots || [];
+      const staff = sch.staffList || [];
+      const summary = sch.summary || [];
+      const totalCols = 3 + slots.length + 1; // 员工/类型/效率 + 时段 + 工时
+      const lastCol = totalCols - 1;
+
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(rows);
-      ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 8 }, ...(sch.slots || []).map(() => ({ wch: 7 })), { wch: 8 }];
+
+      // ---- 颜色工具 ----
+      const hx = n => ('0' + Math.max(0, Math.min(255, n)).toString(16)).slice(-2).toUpperCase();
+      const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+      const heat = (v, max) => { // 绿(低) -> 红(高) 渐变
+        if (!max || max <= 0) return 'E2EFDA';
+        const t = Math.max(0, Math.min(1, v / max));
+        return hx(lerp(198, 248, t)) + hx(lerp(239, 105, t)) + hx(lerp(206, 107, t));
+      };
+      const maxFc = summary.reduce((m, s) => Math.max(m, s.forecast || 0), 0);
+      const maxNeg = summary.reduce((m, s) => Math.max(m, s.gap < 0 ? Math.abs(s.gap) : 0), 0);
+
+      // ---- 样式模板 ----
+      const thin = { style: 'thin', color: { rgb: 'D9D9D9' } };
+      const B = { top: thin, bottom: thin, left: thin, right: thin };
+      const S = (o) => Object.assign({ border: B }, o);
+      const solid = (rgb) => ({ patternType: 'solid', fgColor: { rgb }, bgColor: { rgb } });
+
+      function setCell(r, c, style, value) {
+        const addr = XLSX.utils.encode_cell({ r, c });
+        if (!ws[addr]) ws[addr] = { t: 's', v: value != null ? value : '' };
+        ws[addr].s = style;
+      }
+
+      // 行索引
+      const R_TITLE = 0, R_DATE = 1, R_HEAD = 3;
+      const R_FIRST_STAFF = 4;
+      const R_SPACER2 = R_FIRST_STAFF + staff.length;
+      const R_FORECAST = R_SPACER2 + 1;
+      const R_DEMAND = R_FORECAST + 1;
+      const R_SCHED = R_DEMAND + 1;
+      const R_GAP = R_SCHED + 1;
+      const LAST_ROW = R_GAP;
+
+      // 标题（整行合并）
+      for (let c = 0; c <= lastCol; c++) setCell(R_TITLE, c, S({
+        font: { bold: true, sz: 14, color: { rgb: '1F3864' } },
+        fill: solid('DCE6F1'),
+        alignment: { horizontal: 'center', vertical: 'center' }
+      }));
+      // 日期行（整行合并）
+      for (let c = 0; c <= lastCol; c++) setCell(R_DATE, c, S({
+        font: { bold: true, sz: 10, color: { rgb: '444444' } },
+        fill: solid('F2F7FB'),
+        alignment: { horizontal: 'left', vertical: 'center' }
+      }));
+      // 表头行
+      for (let c = 0; c <= lastCol; c++) setCell(R_HEAD, c, S({
+        font: { bold: true, sz: 10, color: { rgb: '1F3864' } },
+        fill: solid('DCE6F1'),
+        alignment: { horizontal: c === 0 ? 'left' : 'center', vertical: 'center', wrapText: true }
+      }));
+      // 员工行
+      staff.forEach((s, ri) => {
+        const r = R_FIRST_STAFF + ri;
+        setCell(r, 0, S({ font: { bold: true, sz: 10 }, alignment: { horizontal: 'left', vertical: 'center' } }));
+        setCell(r, 1, S({ font: { sz: 9, color: { rgb: '666666' } }, alignment: { horizontal: 'center', vertical: 'center' } }));
+        setCell(r, 2, S({ font: { sz: 9, color: { rgb: 'E6A817' } }, alignment: { horizontal: 'center', vertical: 'center' } }));
+        slots.forEach((slot, ci) => {
+          const on = s.shifts && s.shifts[slot];
+          const bg = on ? (s.isTemp ? 'FDE9E9' : 'E2EFDA') : 'FFFFFF';
+          const fg = on ? (s.isTemp ? 'C00000' : '2E7D32') : '999999';
+          setCell(r, 3 + ci, S({
+            font: { sz: 10, color: { rgb: fg } },
+            fill: solid(bg),
+            alignment: { horizontal: 'center', vertical: 'center' }
+          }));
+        });
+        setCell(r, lastCol, S({ font: { bold: true, sz: 10, color: { rgb: '1F3864' } }, alignment: { horizontal: 'center', vertical: 'center' } }));
+      });
+      // 汇总标签（前3列合并右对齐）
+      function labelRow(r, color) {
+        for (let c = 0; c <= 2; c++) setCell(r, c, S({
+          font: { bold: true, sz: 10, color: { rgb: color || '555555' } },
+          alignment: { horizontal: 'right', vertical: 'center' }
+        }));
+      }
+      // 预估订单量：热力色
+      labelRow(R_FORECAST, '1F3864');
+      slots.forEach((_, ci) => {
+        const v = summary[ci] ? (summary[ci].forecast || 0) : 0;
+        const bg = heat(v, maxFc);
+        setCell(R_FORECAST, 3 + ci, S({
+          font: { bold: true, sz: 10, color: { rgb: (maxFc > 0 && v / maxFc > 0.6) ? 'FFFFFF' : '333333' } },
+          fill: solid(bg),
+          alignment: { horizontal: 'center', vertical: 'center' }
+        }));
+      });
+      setCell(R_FORECAST, lastCol, S({ alignment: { horizontal: 'center' } }));
+      // 需求人数：素色
+      labelRow(R_DEMAND);
+      slots.forEach((_, ci) => setCell(R_DEMAND, 3 + ci, S({ font: { sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' } })));
+      setCell(R_DEMAND, lastCol, S({}));
+      // 排班人数：素色
+      labelRow(R_SCHED);
+      slots.forEach((_, ci) => setCell(R_SCHED, 3 + ci, S({ font: { sz: 10 }, alignment: { horizontal: 'center', vertical: 'center' } })));
+      setCell(R_SCHED, lastCol, S({}));
+      // 差异：缺口越大红色越深，正好/充足为绿色
+      labelRow(R_GAP);
+      slots.forEach((_, ci) => {
+        const s = summary[ci] || {};
+        const g = s.gap;
+        const isPos = typeof g === 'string' ? g.indexOf('+') === 0 : g > 0;
+        const isZero = typeof g === 'string' ? g === '0' : g === 0;
+        const mag = typeof g === 'string' ? Math.abs(parseInt(g, 10) || 0) : Math.abs(g || 0);
+        let bg, fg;
+        if (isZero || isPos) { bg = 'C6EFCE'; fg = '1E7B34'; }
+        else {
+          const t = maxNeg > 0 ? Math.min(1, mag / maxNeg) : 0;
+          bg = hx(lerp(252, 248, t)) + hx(lerp(228, 105, t)) + hx(lerp(228, 107, t));
+          fg = t > 0.5 ? 'FFFFFF' : '9C0006';
+        }
+        setCell(R_GAP, 3 + ci, S({
+          font: { bold: true, sz: 10, color: { rgb: fg } },
+          fill: solid(bg),
+          alignment: { horizontal: 'center', vertical: 'center' }
+        }));
+      });
+      setCell(R_GAP, lastCol, S({}));
+
+      // 列宽 / 行高
+      ws['!cols'] = [{ wch: 12 }, { wch: 7 }, { wch: 7 }, ...slots.map(() => ({ wch: 6.5 })), { wch: 8 }];
+      const heights = new Array(LAST_ROW + 1).fill(null).map(() => ({ hpt: 18 }));
+      heights[R_TITLE] = { hpt: 28 };
+      heights[2] = { hpt: 6 };
+      heights[R_HEAD] = { hpt: 22 };
+      heights[R_SPACER2] = { hpt: 6 };
+      ws['!rows'] = heights;
+
+      // 合并：标题、日期、各汇总标签前3列
+      const merges = [
+        { s: { r: R_TITLE, c: 0 }, e: { r: R_TITLE, c: lastCol } },
+        { s: { r: R_DATE, c: 0 }, e: { r: R_DATE, c: lastCol } },
+      ];
+      [R_FORECAST, R_DEMAND, R_SCHED, R_GAP].forEach(r => merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }));
+      ws['!merges'] = merges;
+
       XLSX.utils.book_append_sheet(wb, ws, '排班表');
-      const fileName = sch.brand + sch.store + '_排班_' + sch.date + '.xlsx';
+      const fileName = (sch.brand || '') + (sch.store || '') + '_排班_' + sch.date + '.xlsx';
       XLSX.writeFile(wb, fileName);
     }
 
@@ -3331,7 +3479,13 @@ createApp({
         isTemp: s.isTemp || false,
         efficiency: s.efficiency || 0,
       }));
-      const summary = slotGap.value.map(s => ({ demand: s.demand, scheduled: s.scheduled, gap: s.gap }));
+      const summary = slotGap.value.map((s, i) => ({
+        demand: s.demand,
+        scheduled: s.scheduled,
+        gap: s.gap,
+        status: s.status,
+        forecast: (hourlyForecastData.value[i] && hourlyForecastData.value[i].forecast) || 0,
+      }));
       const schedule = {
         date: selectedDate.value,
         brand: brands.value[selectedBrandIdx.value]?.name || '',
