@@ -389,7 +389,7 @@ def fetch_deployed_forecasts():
     pattern = r'let\s+savedForecastsData\s*=\s*\{'
     match = re.search(pattern, deployed_html)
     if not match:
-        print("[WARN] 已部署HTML中未找到savedForecastsData")
+        print("[INFO] 已部署HTML无savedForecastsData声明，无历史基准可提取")
         return {}
 
     start_pos = match.start()
@@ -446,7 +446,7 @@ def update_html_forecasts(content):
         req = urllib.request.Request(
             f"{SUPABASE_URL}/rest/v1/forecasts?"
             f"select=date,store_name,user_name,forecast_value"
-            f"&store_name=eq.龙湖天街店"
+            f"&store_name=eq.{urllib.parse.quote('龙湖天街店')}"
             f"&user_name=neq._system_"
             f"&forecast_value=gt.0"
             f"&order=date.desc",
@@ -467,7 +467,7 @@ def update_html_forecasts(content):
         sb_count = sum(len(v) for v in supabase_data.values())
         print(f"[INFO] Supabase手动预估: {sb_count} 条")
     except Exception as e:
-        print(f"[WARN] Supabase预估获取失败: {e}")
+        print(f"[INFO] Supabase手填预估源不可达（多为网络限制），跳过多端合并: {e}")
 
     # 2. 从已部署HTML获取基准数据（向后兼容）
     deployed_data = fetch_deployed_forecasts()
@@ -486,7 +486,7 @@ def update_html_forecasts(content):
 
     merged_count = sum(len(v) for v in merged.values())
     if merged_count == 0:
-        print("[WARN] 无预估数据可嵌入")
+        print("[INFO] 无手填预估数据可嵌入，保持HTML原样")
         return content
     print(f"[OK] 合并预估数据: 共{merged_count}条 ({len(merged)}个门店)")
 
@@ -635,10 +635,15 @@ def update_model_forecast(content, anchor_tomorrow=False, horizon=16, engine='fu
         entries = re.findall(r"'(\d{4}-\d{2}-\d{2})'\s*:\s*(\d+)", m.group(1))
         history = {d: int(v) for d, v in entries}
 
-    # 3. 锁定今天的值到历史（仅今天有预估且尚未锁定时）
-    if today in current_mf and today not in history:
-        history[today] = current_mf[today]
-        print(f"[INFO] 锁定{today}系统预估: {history[today]}单")
+    # 3. 冻结所有已过期/当日日期到历史（不只今天）：凡 <= 今天且出现在上次预估中的日期都锁定，
+    #    防止日期滚出预估窗口后被 generateDailyForecasts 静默回退成上周同期实际。
+    #    仅冻结近 60 天内的，避免把久远陈旧值累积进历史。
+    _freeze_cutoff = (datetime.strptime(today, '%Y-%m-%d') - timedelta(days=60)).strftime('%Y-%m-%d')
+    newly_frozen = [d for d in current_mf if _freeze_cutoff < d <= today and d not in history]
+    for d in sorted(newly_frozen):
+        history[d] = current_mf[d]
+    if newly_frozen:
+        print(f"[INFO] 冻结{len(newly_frozen)}个已过期/当日预估进历史: {min(newly_frozen)}~{max(newly_frozen)}")
 
     # 4. 刷新天气数据
     print("[INFO] 刷新模型天气数据...")
@@ -700,6 +705,30 @@ def update_model_forecast(content, anchor_tomorrow=False, horizon=16, engine='fu
         return content
     with open(forecast_file, 'r', encoding='utf-8') as f:
         forecast_data = json.load(f)
+
+    # 7.5 安全校验：拒绝用"数据不足3周"或"预估窗口整体已过期"的陈旧模型输出覆盖现有预估。
+    #     历史故障复盘：全量引擎被喂了仅1周的拣货单Excel → 趋势/衰减/天气系数全塌成1.0 →
+    #     "预估"退化成复读上周同星期几，且覆盖了正常周刷新。以下两道闸防止重演。
+    _meta = forecast_data.get('meta', {}) or {}
+    _dr = str(_meta.get('data_range', ''))
+    _dr_dates = re.findall(r'\d{4}-\d{2}-\d{2}', _dr)
+    _span_days = None
+    if len(_dr_dates) >= 2:
+        try:
+            _d0 = datetime.strptime(_dr_dates[0], '%Y-%m-%d')
+            _d1 = datetime.strptime(_dr_dates[-1], '%Y-%m-%d')
+            _span_days = (_d1 - _d0).days + 1
+        except Exception:
+            _span_days = None
+    _actual_days = _meta.get('actual_days')
+    if (_actual_days is not None and _actual_days < 21) or (_span_days is not None and _span_days < 21):
+        print(f"[WARN] 模型输入数据不足3周(actual_days={_actual_days}, 数据跨度={_span_days}天)，"
+              f"疑似喂了过短的拣货单Excel，拒绝覆盖现有预估。请检查输入后重跑。")
+        return content
+    _fc_dates = [fc.get('date') for fc in forecast_data.get('forecast', []) if fc.get('date')]
+    if _fc_dates and max(_fc_dates) <= today:
+        print(f"[WARN] 模型预估窗口({_fc_dates[0]}~{max(_fc_dates)})整体已过期，疑似陈旧运行，拒绝覆盖现有预估。")
+        return content
 
     # 8. 构建新modelForecastData（今天锁定，明天起用模型新值）
     new_mf = {}
