@@ -469,7 +469,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <div class="mr-6">
         <h1 class="app-title">订单预估与排班</h1>
         <div class="app-title-sub">Forecast &amp; Scheduling</div>
-        <div class="text-[10px] mt-0.5" style="color: var(--color-muted);">v1.3</div>
+        <div class="text-[10px] mt-0.5" style="color: var(--color-muted);">v1.4</div>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-xs font-medium uppercase tracking-wider" style="color: var(--color-muted);">品牌</label>
@@ -1368,7 +1368,7 @@ createApp({
     // ==================== 品牌门店数据 ====================
     // 兴勤超市港惠店拣货单分布数据（「下单时间」口径，2026.08.20-2026.10.18，工作日n=20156/周末n=10147）。
     let storeDistData = {
-      '港惠店': {weekday:[{start:'07:00',ratio:0.011344},{start:'07:30',ratio:0.008508},{start:'08:00',ratio:0.024957},{start:'08:30',ratio:0.030062},{start:'09:00',ratio:0.027794},{start:'09:30',ratio:0.041974},{start:'10:00',ratio:0.056721},{start:'10:30',ratio:0.062961},{start:'11:00',ratio:0.045377},{start:'11:30',ratio:0.031197},{start:'12:00',ratio:0.027794},{start:'12:30',ratio:0.028928},{start:'13:00',ratio:0.022689},{start:'13:30',ratio:0.018718},{start:'14:00',ratio:0.020987},{start:'14:30',ratio:0.032898},{start:'15:00',ratio:0.039705},{start:'15:30',ratio:0.046512},{start:'16:00',ratio:0.040272},{start:'16:30',ratio:0.053885},{start:'17:00',ratio:0.055587},{start:'17:30',ratio:0.041974},{start:'18:00',ratio:0.034600},{start:'18:30',ratio:0.036302},{start:'19:00',ratio:0.026092},{start:'19:30',ratio:0.045944},{start:'20:00',ratio:0.030062},{start:'20:30',ratio:0.027794},{start:'21:00',ratio:0.020420},{start:'21:30',ratio:0.007941}],weekend:[{start:'07:00',ratio:0.006160},{start:'07:30',ratio:0.008214},{start:'08:00',ratio:0.018480},{start:'08:30',ratio:0.020534},{start:'09:00',ratio:0.047228},{start:'09:30',ratio:0.036961},{start:'10:00',ratio:0.065708},{start:'10:30',ratio:0.054415},{start:'11:00',ratio:0.053388},{start:'11:30',ratio:0.037988},{start:'12:00',ratio:0.033881},{start:'12:30',ratio:0.025667},{start:'13:00',ratio:0.030801},{start:'13:30',ratio:0.019507},{start:'14:00',ratio:0.026694},{start:'14:30',ratio:0.032854},{start:'15:00',ratio:0.029774},{start:'15:30',ratio:0.037988},{start:'16:00',ratio:0.043121},{start:'16:30',ratio:0.047228},{start:'17:00',ratio:0.052361},{start:'17:30',ratio:0.057495},{start:'18:00',ratio:0.042094},{start:'18:30',ratio:0.028747},{start:'19:00',ratio:0.026694},{start:'19:30',ratio:0.031828},{start:'20:00',ratio:0.028747},{start:'20:30',ratio:0.024641},{start:'21:00',ratio:0.022587},{start:'21:30',ratio:0.008214}]}
+      '港惠店': {weekday:[{start:'07:00',ratio:0.013036},{start:'07:30',ratio:0.021184},{start:'08:00',ratio:0.032591},{start:'08:30',ratio:0.041825},{start:'09:00',ratio:0.029332},{start:'09:30',ratio:0.041825},{start:'10:00',ratio:0.053775},{start:'10:30',ratio:0.058664},{start:'11:00',ratio:0.044541},{start:'11:30',ratio:0.030418},{start:'12:00',ratio:0.028789},{start:'12:30',ratio:0.028789},{start:'13:00',ratio:0.024986},{start:'13:30',ratio:0.019555},{start:'14:00',ratio:0.015752},{start:'14:30',ratio:0.031505},{start:'15:00',ratio:0.038023},{start:'15:30',ratio:0.043455},{start:'16:00',ratio:0.042911},{start:'16:30',ratio:0.051059},{start:'17:00',ratio:0.054318},{start:'17:30',ratio:0.039109},{start:'18:00',ratio:0.034221},{start:'18:30',ratio:0.034221},{start:'19:00',ratio:0.026073},{start:'19:30',ratio:0.043998},{start:'20:00',ratio:0.028246},{start:'20:30',ratio:0.024986},{start:'21:00',ratio:0.017925},{start:'21:30',ratio:0.004889}],weekend:[{start:'07:00',ratio:0.014764},{start:'07:30',ratio:0.013780},{start:'08:00',ratio:0.036417},{start:'08:30',ratio:0.025591},{start:'09:00',ratio:0.045276},{start:'09:30',ratio:0.035433},{start:'10:00',ratio:0.064961},{start:'10:30',ratio:0.051181},{start:'11:00',ratio:0.050197},{start:'11:30',ratio:0.037402},{start:'12:00',ratio:0.033465},{start:'12:30',ratio:0.023622},{start:'13:00',ratio:0.029528},{start:'13:30',ratio:0.018701},{start:'14:00',ratio:0.024606},{start:'14:30',ratio:0.031496},{start:'15:00',ratio:0.029528},{start:'15:30',ratio:0.035433},{start:'16:00',ratio:0.043307},{start:'16:30',ratio:0.045276},{start:'17:00',ratio:0.050197},{start:'17:30',ratio:0.054134},{start:'18:00',ratio:0.041339},{start:'18:30',ratio:0.026575},{start:'19:00',ratio:0.027559},{start:'19:30',ratio:0.029528},{start:'20:00',ratio:0.030512},{start:'20:30',ratio:0.023622},{start:'21:00',ratio:0.021654},{start:'21:30',ratio:0.004921}]}
     };
     // 兴勤超市港惠店每日订单汇总（2026.8.15-10.18）
     // FBI看板1796001 门店级每日订单 (2026.8.8-9.16)
@@ -1444,7 +1444,8 @@ createApp({
   '2026-10-16': 456,
   '2026-10-17': 402,
   '2026-10-18': 503,
-  '2026-10-19': 418
+  '2026-10-19': 418,
+  '2026-10-20': 381
 };
     const modelForecastData = {
   '2026-10-20': 381,
@@ -1465,17 +1466,17 @@ createApp({
   '2026-11-04': 352
 };
 
-    // Open-Meteo 天气预报 (西安 34.26,108.94) 更新于 2026-09-17
+    // Open-Meteo 天气预报 (惠州 23.11,114.42) 更新于 2026-10-20
     const staticWeatherData = {
-      '惠州': [
-        {date:'2026-10-20',desc:'晴',temp:'23~33°C'},
-        {date:'2026-10-21',desc:'晴',temp:'23~33°C'},
-        {date:'2026-10-22',desc:'多云',temp:'23~31°C'},
-        {date:'2026-10-23',desc:'多云',temp:'23~32°C'},
-        {date:'2026-10-24',desc:'晴',temp:'23~32°C'},
-        {date:'2026-10-25',desc:'晴',temp:'23~32°C'},
-        {date:'2026-10-26',desc:'阵雨',temp:'23~33°C'},
-      ],
+      '兴勤超市港惠店': [
+        {date:'2026-10-20',desc:'雾',temp:'24~33°C'},
+        {date:'2026-10-21',desc:'雾',temp:'24~33°C'},
+        {date:'2026-10-22',desc:'阴',temp:'22~31°C'},
+        {date:'2026-10-23',desc:'阴',temp:'21~32°C'},
+        {date:'2026-10-24',desc:'阴',temp:'21~32°C'},
+        {date:'2026-10-25',desc:'阴',temp:'23~32°C'},
+        {date:'2026-10-26',desc:'小雨 0.6mm',temp:'24~33°C'}
+      ]
     };
 
     const brands = ref([
