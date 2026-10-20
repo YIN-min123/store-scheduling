@@ -40,6 +40,9 @@ BRAND_NAME = '兴勤超市'
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = SCRIPT_DIR
 ACCUMULATED_DATA_PATH = os.path.join(SCRIPT_DIR, 'daily_actuals_xinqin.json')
+# 轻量引擎(daily_forecast_lite_xinqin.py)读取的"实际真值"输入(全渠道全量)
+# 这是预估的地面真值来源；新一天订单量必须先进这里，引擎才会把它纳入基线。
+ENGINE_ACTUALS_PATH = r'C:\Users\TBSG\.qoderwork\workspace\mvg1a4pbc2196wre\xinqin_daily_full.json'
 
 DRY_RUN = False
 
@@ -215,8 +218,40 @@ def _read_js_int_map(content, var_name):
     return {d: int(v) for d, v in entries}
 
 
+def _sync_store_daily_into_actuals(content):
+    """把HTML storeDailyData(现全渠道全量)合并进引擎真值文件，
+       确保新推送/回填的一天纳入预估基线(引擎只读ENGINE_ACTUALS_PATH)。"""
+    try:
+        m = re.search(
+            rf"let\s+storeDailyData\s*=\s*\{{.*?'{STORE_NAME}'\s*:\s*\{{([^}}]*)\}}",
+            content, re.DOTALL)
+        if not m:
+            return
+        pairs = re.findall(r"'(\d{4}-\d{2}-\d{2})'\s*:\s*(\d+)", m.group(1))
+        sd = {d: int(v) for d, v in pairs}
+        actuals = {}
+        if os.path.exists(ENGINE_ACTUALS_PATH):
+            with open(ENGINE_ACTUALS_PATH, 'r', encoding='utf-8') as f:
+                actuals = json.load(f)
+        added = 0
+        for d, v in sd.items():
+            if v > 0 and actuals.get(d) != v:
+                actuals[d] = v
+                added += 1
+        if added:
+            with open(ENGINE_ACTUALS_PATH, 'w', encoding='utf-8') as f:
+                json.dump(actuals, f, ensure_ascii=False, indent=1, sort_keys=True)
+            print(f"[INFO] storeDailyData已同步进引擎真值: 更新{added}天 "
+                  f"(现{min(actuals)}~{max(actuals)}共{len(actuals)}天)")
+    except Exception as e:
+        print(f"[WARN] storeDailyData→引擎真值同步失败: {e}")
+
+
 def update_model_forecast(content, horizon=16):
     """冻结过期预估进历史 + 调用轻量引擎刷新未来窗口 + 陈旧校验（对齐成山修复）。"""
+    # 0. 先把HTML里的实际订单(全渠道全量)并入引擎真值，避免新推送的一天不进预估基线
+    _sync_store_daily_into_actuals(content)
+
     today = datetime.now().strftime('%Y-%m-%d')
 
     # 1. 读取现有预估块
@@ -437,9 +472,9 @@ def main():
 
 
 def run_weekly_refresh():
-    """每周刷新预估"""
+    """刷新预估(每日13:00调用)"""
     today = datetime.now().strftime('%Y-%m-%d')
-    print(f"=== 兴勤超市港惠店 周刷新 {today} ===")
+    print(f"=== 兴勤超市港惠店 预估刷新 {today} ===")
 
     with open(HTML_PATH, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -461,14 +496,14 @@ def run_weekly_refresh():
         # 推送周预估摘要
         weekday_names = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
         lines = []
-        lines.append(f"## 兴勤超市·港惠店 系统预估周刷新 {today}")
+        lines.append(f"## 兴勤超市·港惠店 系统预估刷新 {today}")
         lines.append("")
         lines.append(f"[点击打开排班工具]({PAGES_URL})")
         lines.append("")
-        lines.append("> 每周五自动刷新未来16天预估")
+        lines.append("> 全渠道全量口径 · 每天自动刷新未来16天预估")
         message = "\n".join(lines)
         result = sign_and_send(message)
-        print(f"[OK] 周刷新完成 | 钉钉: {result}")
+        print(f"[OK] 预估刷新完成 | 钉钉: {result}")
 
 
 if __name__ == '__main__':
