@@ -162,98 +162,146 @@ def update_html_weather(content, weather_entries):
 
 
 # ==================== 模型预估更新 ====================
-def update_model_forecast(content):
-    """基于实际订单+天气更新未来预估"""
+def _build_js_dict(obj):
+    if not obj:
+        return '{}'
+    items = ',\n  '.join(f"'{k}': {int(v)}" for k, v in sorted(obj.items()))
+    return '{\n  ' + items + '\n}'
+
+
+def _replace_js_object(content, var_name, new_body):
+    """用花括号计数法定位并整体替换 const/let var_name = {...};"""
+    m = re.search(r'(?:const|let)\s+' + re.escape(var_name) + r'\s*=\s*\{', content)
+    if not m:
+        return content, False
+    start = m.start()
+    brace = 0
+    end = -1
+    for i in range(m.end() - 1, len(content)):
+        if content[i] == '{':
+            brace += 1
+        elif content[i] == '}':
+            brace -= 1
+            if brace == 0:
+                end = i + 1
+                if end < len(content) and content[end] == ';':
+                    end += 1
+                break
+    if end < 0:
+        return content, False
+    keyword = 'const' if content[start] == 'c' else 'let'
+    replacement = f"{keyword} {var_name} = {new_body};"
+    return content[:start] + replacement + content[end:], True
+
+
+def _read_js_int_map(content, var_name):
+    m = re.search(r'(?:const|let)\s+' + re.escape(var_name) + r'\s*=\s*\{', content)
+    if not m:
+        return {}
+    brace = 0
+    end = -1
+    for i in range(m.end() - 1, len(content)):
+        if content[i] == '{':
+            brace += 1
+        elif content[i] == '}':
+            brace -= 1
+            if brace == 0:
+                end = i + 1
+                break
+    if end < 0:
+        return {}
+    body = content[m.end():end - 1]
+    entries = re.findall(r"'(\d{4}-\d{2}-\d{2})'\s*:\s*(\d+)", body)
+    return {d: int(v) for d, v in entries}
+
+
+def update_model_forecast(content, horizon=16):
+    """冻结过期预估进历史 + 调用轻量引擎刷新未来窗口 + 陈旧校验（对齐成山修复）。"""
     today = datetime.now().strftime('%Y-%m-%d')
 
-    # 提取实际订单
-    m = re.search(
-        rf"let\s+storeDailyData\s*=\s*\{{.*?'{STORE_NAME}'\s*:\s*\{{([^}}]*)\}}",
-        content, re.DOTALL
-    )
-    if not m:
-        print("[WARN] 无法提取实际订单")
+    # 1. 读取现有预估块
+    current_mf = _read_js_int_map(content, 'modelForecastData')
+    history = _read_js_int_map(content, 'modelForecastHistory')
+
+    # 2. 冻结所有 <= 今天且近60天内的过期/当日预估进历史，
+    #    防止日期滚出预估窗口后被 generateDailyForecasts 静默回退成上周同期实际。
+    freeze_cutoff = (datetime.strptime(today, '%Y-%m-%d') - timedelta(days=60)).strftime('%Y-%m-%d')
+    newly_frozen = [d for d in current_mf if freeze_cutoff < d <= today and d not in history]
+    for d in sorted(newly_frozen):
+        history[d] = current_mf[d]
+    if newly_frozen:
+        print(f"[INFO] 冻结{len(newly_frozen)}个已过期/当日预估进历史: {min(newly_frozen)}~{max(newly_frozen)}")
+
+    # 3. 运行轻量引擎（回测历史 + 未来窗口），写出 forecast_result_xinqin.json
+    model_script = os.path.join(MODEL_DIR, 'daily_forecast_lite_xinqin.py')
+    result_file = os.path.join(MODEL_DIR, 'forecast_result_xinqin.json')
+    if not os.path.exists(model_script):
+        print(f"[WARN] 预估引擎不存在: {model_script}，仅冻结历史、不改未来")
         return content
-
-    entries = re.findall(r"'(\d{4}-\d{2}-\d{2})'\s*:\s*(\d+)", m.group(1))
-    actuals = {d: int(v) for d, v in entries}
-    if not actuals:
-        return content
-
-    # 按星期几计算基准
-    weekday_orders = {i: [] for i in range(7)}
-    sorted_dates = sorted(actuals.keys())
-    recent_dates = sorted_dates[-28:]  # last 4 weeks
-    for d in recent_dates:
-        dow = datetime.strptime(d, '%Y-%m-%d').weekday()
-        weekday_orders[dow].append(actuals[d])
-
-    base_by_dow = {}
-    for dow, vals in weekday_orders.items():
-        if vals:
-            base_by_dow[dow] = sum(vals) / len(vals)
-
-    # 趋势因子
-    last7 = [actuals[d] for d in sorted_dates[-7:]]
-    prev7 = [actuals[d] for d in sorted_dates[-14:-7]]
-    trend = (sum(last7)/len(last7)) / (sum(prev7)/len(prev7)) if prev7 else 1.0
-    effective_trend = 1 + (trend - 1) * 0.5
-
-    # 获取未来天气
-    weather_url = (
-        f"https://api.open-meteo.com/v1/forecast?"
-        f"latitude={WEATHER_LAT}&longitude={WEATHER_LON}"
-        f"&daily=temperature_2m_max,precipitation_sum"
-        f"&forecast_days=16&timezone=Asia/Shanghai"
-    )
+    model_env = dict(os.environ)
+    model_env['PYTHONIOENCODING'] = 'utf-8'
+    model_env['FC_HORIZON'] = str(horizon)
     try:
-        req = urllib.request.Request(weather_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            wdata = json.loads(resp.read().decode('utf-8'))['daily']
-        wmap = {}
-        for i, d in enumerate(wdata['time']):
-            wmap[d] = {'tmax': wdata['temperature_2m_max'][i], 'precip': wdata['precipitation_sum'][i]}
-    except:
-        wmap = {}
+        r = subprocess.run([sys.executable, '-X', 'utf8', model_script],
+                           capture_output=True, text=True, timeout=180,
+                           cwd=MODEL_DIR, env=model_env)
+        if r.returncode != 0:
+            print(f"[WARN] 预估引擎异常:\n{r.stderr[-500:]}")
+            return content
+    except Exception as e:
+        print(f"[WARN] 预估引擎运行失败: {e}")
+        return content
 
-    # 生成未来15天预估
+    if not os.path.exists(result_file):
+        print("[WARN] forecast_result_xinqin.json 不存在")
+        return content
+    with open(result_file, 'r', encoding='utf-8') as f:
+        res = json.load(f)
+
+    # 4. 陈旧校验：数据不足3周或预估窗口整体已过期 → 拒绝覆盖
+    meta = res.get('meta', {}) or {}
+    dr = str(meta.get('data_range', ''))
+    dr_dates = re.findall(r'\d{4}-\d{2}-\d{2}', dr)
+    span_days = None
+    if len(dr_dates) >= 2:
+        try:
+            span_days = (datetime.strptime(dr_dates[-1], '%Y-%m-%d')
+                         - datetime.strptime(dr_dates[0], '%Y-%m-%d')).days + 1
+        except Exception:
+            span_days = None
+    actual_days = meta.get('actual_days')
+    if (actual_days is not None and actual_days < 21) or (span_days is not None and span_days < 21):
+        print(f"[WARN] 引擎输入数据不足3周(actual_days={actual_days}, 跨度={span_days}天)，拒绝覆盖现有预估。")
+        return content
+    future_list = res.get('future', [])
+    fc_dates = [x.get('date') for x in future_list if x.get('date')]
+    if fc_dates and max(fc_dates) <= today:
+        print(f"[WARN] 预估窗口({fc_dates[0]}~{max(fc_dates)})整体已过期，疑似陈旧运行，拒绝覆盖。")
+        return content
+
+    # 5. 构建新 modelForecastData：今天若在历史则锁定，未来天用模型值
     new_mf = {}
-    for i in range(16):
-        dt = datetime.strptime(today, '%Y-%m-%d') + timedelta(days=i)
-        d_str = dt.strftime('%Y-%m-%d')
-        dow = dt.weekday()
-        base = base_by_dow.get(dow, 450)
-        wf = 1.0
-        if d_str in wmap:
-            w = wmap[d_str]
-            if w['precip'] and w['precip'] >= 15: wf *= 1.15
-            elif w['precip'] and w['precip'] >= 5: wf *= 1.08
-            elif w['precip'] and w['precip'] >= 1: wf *= 1.03
-            if w['tmax'] and w['tmax'] >= 35: wf *= 0.95
-            elif w['tmax'] and w['tmax'] < 28: wf *= 0.92
-        forecast_val = round(base * effective_trend * wf)
-        new_mf[d_str] = forecast_val
+    for x in future_list:
+        d = x['date']
+        v = int(round(x.get('forecast', 0)))
+        if d == today and d in history:
+            new_mf[d] = history[d]
+        elif d > today:
+            new_mf[d] = v
+        elif d not in history:
+            new_mf[d] = v
+    if not new_mf:
+        print("[WARN] 引擎无有效未来预估输出")
+        return content
 
-    # 更新 modelForecastData
-    hist_items = ',\n  '.join([f"'{d}': {v}" for d, v in sorted(new_mf.items())])
-    new_block = f"const modelForecastData = {{\n  {hist_items}\n}};"
+    # 6. 写回两个块
+    content, _ = _replace_js_object(content, 'modelForecastData', _build_js_dict(new_mf))
+    content, _ = _replace_js_object(content, 'modelForecastHistory', _build_js_dict(history))
 
-    mfd_match = re.search(r'const\s+modelForecastData\s*=\s*\{', content)
-    if mfd_match:
-        start = mfd_match.start()
-        brace = 0
-        end = start
-        for i in range(mfd_match.end() - 1, len(content)):
-            if content[i] == '{': brace += 1
-            elif content[i] == '}':
-                brace -= 1
-                if brace == 0:
-                    end = i + 1
-                    if end < len(content) and content[end] == ';': end += 1
-                    break
-        content = content[:start] + new_block + content[end:]
-        print(f"[OK] 系统预估更新: 16天 ({min(new_mf.values())}~{max(new_mf.values())}单)")
-
+    locked = len(history)
+    future_count = sum(1 for d in new_mf if d > today)
+    print(f"[OK] 系统预估更新: 冻结{locked}天历史, {future_count}天未来预估 "
+          f"({min(new_mf.values())}~{max(new_mf.values())}单)")
     return content
 
 
