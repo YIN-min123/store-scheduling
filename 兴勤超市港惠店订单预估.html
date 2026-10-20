@@ -469,7 +469,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <div class="mr-6">
         <h1 class="app-title">订单预估与排班</h1>
         <div class="app-title-sub">Forecast &amp; Scheduling</div>
-        <div class="text-[10px] mt-0.5" style="color: var(--color-muted);">v1.6</div>
+        <div class="text-[10px] mt-0.5" style="color: var(--color-muted);">v1.7</div>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-xs font-medium uppercase tracking-wider" style="color: var(--color-muted);">品牌</label>
@@ -2351,7 +2351,7 @@ createApp({
     }
 
     // ==================== 人力排班 ====================
-    const efficiencyPerHour = ref(4.5);
+    const efficiencyPerHour = ref(5.5);
     const staffList = ref([]);
 
     // 员工池
@@ -3203,7 +3203,7 @@ createApp({
             });
             return staff;
           });
-          efficiencyPerHour.value = saved.efficiency || 4.5;
+          efficiencyPerHour.value = saved.efficiency || 5.5;
           return true;
         }
         return false;
