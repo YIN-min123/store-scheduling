@@ -22,8 +22,8 @@ from datetime import datetime, timedelta
 # ==================== 配置 ====================
 # 钉钉 Webhook (兴勤超市群)
 WEBHOOK_URL = "https://oapi.dingtalk.com/robot/send"
-ACCESS_TOKEN = "9543110798e243c59078fc69507e4ec20b4e1e7158b8be3238b061bc4f2ef8bb"
-SECRET = "SEC621256ec403f62bdb330ced57067088ed984865abb854a614cd1b471102362f8"
+ACCESS_TOKEN = "d05e75e181cfea20789593a269ca19fc6c9075f73b59238afb8ad3ee4f1aaee3"
+SECRET = "SEC19711fcda7f40696e0a209227ecc7b274b8adf6fd8b608c6242957d69bf6d6df"
 
 # 文件路径
 HTML_PATH = r"D:\TBSG\Desktop\order-forecast-scheduling-港惠店.html"
